@@ -1,11 +1,10 @@
 package main
 
 import (
-	"os"
 	"fmt"
 	"log"
-	"bufio"
 	"strconv"
+	. "adventofcode2018/helper"
 )
 
 func main() {
@@ -16,13 +15,8 @@ func main() {
 }
 
 func solvePart1() int64 {
-	file, err := os.Open("../inputs/day1.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
+	file, scanner := NewScanner("../inputs/day1.txt")
 	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
 
 	var count int64 = 0
 	for scanner.Scan() {
@@ -47,11 +41,7 @@ func solvePart2() int64 {
 	set := make(map[int64]bool)
 
 	for !found {
-		file, err := os.Open("../inputs/day1.txt")
-		if err != nil {
-			log.Fatal(err)
-		}
-		scanner := bufio.NewScanner(file)
+		file, scanner := NewScanner("../inputs/day1.txt")
 
 		for !found && scanner.Scan() {
 			text := scanner.Text()
@@ -68,6 +58,9 @@ func solvePart2() int64 {
 			}
 		}
 
+		if err := scanner.Err(); err != nil {
+			log.Fatal(err)
+		}
 		file.Close()
 	}
 
