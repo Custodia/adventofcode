@@ -1,0 +1,15 @@
+#!/bin/sh
+
+SCRIPTPATH=$(dirname $(readlink -f "$0"))
+
+export GOPATH
+
+case $GOPATH in
+    *$SCRIPTPATH*)
+        ;;
+    *)
+        GOPATH=$(go env GOPATH):$SCRIPTPATH
+        ;;
+esac
+
+SCRIPTPATH=
