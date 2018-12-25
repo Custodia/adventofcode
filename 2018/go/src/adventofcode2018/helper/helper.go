@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"log"
 	"bufio"
+	"strconv"
 )
 
 func NewScanner(filename string) (*os.File, *bufio.Scanner) {
@@ -49,4 +50,12 @@ func Max(x, y int) int {
 		return x
 	}
 	return y
+}
+
+func StringToInt(str string) int {
+	e, err := strconv.Atoi(str)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return e
 }

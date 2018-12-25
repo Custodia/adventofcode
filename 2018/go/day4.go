@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"regexp"
 	"sort"
 	. "adventofcode2018/helper"
@@ -122,7 +121,7 @@ func parseInput() map[int][60]int {
 			}
 		default:
 			result := guardRegex.FindStringSubmatch(v.text)
-			guard = stringToInt(result[1])
+			guard = StringToInt(result[1])
 		}
 	}
 
@@ -131,19 +130,11 @@ func parseInput() map[int][60]int {
 
 func parseLine(line string) inputLine {
 	result := regex.FindStringSubmatch(line)
-	month  := stringToInt(result[2])
-	day    := stringToInt(result[3])
-	hour   := stringToInt(result[4])
-	minute := stringToInt(result[5])
+	month  := StringToInt(result[2])
+	day    := StringToInt(result[3])
+	hour   := StringToInt(result[4])
+	minute := StringToInt(result[5])
 	date   := result[1]
 	text   := result[6]
 	return inputLine{month: month, day: day, hour: hour, minute: minute, date: date, text: text}
-}
-
-func stringToInt(str string) int {
-	e, err := strconv.Atoi(str)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return e
 }
