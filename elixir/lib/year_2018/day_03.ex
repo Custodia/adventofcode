@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2018.Day03 do
-  @filename "../2018/inputs/day03.txt"
+  @filename "../inputs/2018/day03.txt"
 
   @line_regex ~r/^#(\d+) @ (\d+),(\d+): (\d+)x(\d+)$/
 

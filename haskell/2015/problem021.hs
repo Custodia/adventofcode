@@ -18,6 +18,6 @@ area s = 2 * lw + 2 * lh + 2 * hw + min
 	      min = minimum [lw, lh, hw]
 
 main = do
-	file <- readFile "../inputs/problem021.txt"
+	file <- readFile "../../inputs/2015/problem021.txt"
 	let dimensions = lines file
 	return (sum $ map area dimensions)

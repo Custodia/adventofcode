@@ -16,6 +16,6 @@ ribbons s = l * w * h + 2 * (min !! 0) + 2 * (min !! 1)
 	      min = sort [l, h, w]
 
 main = do
-	file <- readFile "../inputs/problem021.txt"
+	file <- readFile "../../inputs/2015/problem021.txt"
 	let dimensions = lines file
 	return (sum $ map ribbons dimensions)

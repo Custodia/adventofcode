@@ -1,14 +1,14 @@
 package main
 
 import (
+	. "adventofcode2018/helper"
 	"fmt"
 	"log"
 	"math"
 	"strings"
-	. "adventofcode2018/helper"
 )
 
-const fileName string = "../inputs/day6.txt"
+const fileName string = "../../inputs/2018/day6.txt"
 
 type coord struct {
 	x int
@@ -28,15 +28,15 @@ func solvePart1() int {
 
 	maxx, maxy, coords := fitCoords(unfittedCoords, extraRows)
 
-	grid := make([][]int, maxx + 1)
+	grid := make([][]int, maxx+1)
 	for x := 0; x <= maxx; x++ {
-		row := make([]int, maxy + 1)
+		row := make([]int, maxy+1)
 		grid[x] = row
 		for y := 0; y <= maxy; y++ {
 			minDist := math.MaxInt32
 			closest := -1
 			for i, c := range coords {
-				dist := intAbs(x - c.x) + intAbs(y - c.y)
+				dist := intAbs(x-c.x) + intAbs(y-c.y)
 				if dist < minDist {
 					minDist = dist
 					closest = i
@@ -93,7 +93,7 @@ func solvePart2() int {
 		for y := 0; y <= maxy; y++ {
 			total := 0
 			for _, c := range coords {
-				dist := intAbs(x - c.x) + intAbs(y - c.y)
+				dist := intAbs(x-c.x) + intAbs(y-c.y)
 				total += dist
 			}
 			if total < 10000 {
@@ -115,8 +115,8 @@ func fitCoords(coords []coord, extraRows int) (int, int, []coord) {
 		maxy = Max(maxy, c.y)
 	}
 
-	xa, ya := minx - extraRows, miny - extraRows
-	minx, miny, maxx, maxy = 0, 0, maxx - xa, maxy - ya
+	xa, ya := minx-extraRows, miny-extraRows
+	minx, miny, maxx, maxy = 0, 0, maxx-xa, maxy-ya
 
 	for i, c := range coords {
 		coords[i] = coord{x: c.x - xa, y: c.y - ya}
@@ -141,7 +141,6 @@ func parseInput() (int, []coord) {
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
-
 
 	return lineCount, coords
 }

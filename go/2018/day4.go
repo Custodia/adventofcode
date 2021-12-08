@@ -1,25 +1,25 @@
 package main
 
 import (
+	. "adventofcode2018/helper"
 	"fmt"
 	"log"
 	"regexp"
 	"sort"
-	. "adventofcode2018/helper"
 )
 
-const fileName string = "../inputs/day4.txt"
+const fileName string = "../../inputs/2018/day4.txt"
 
 var regex *regexp.Regexp = regexp.MustCompile(`^\[(\d{4}-(\d\d)-(\d\d) (\d\d):(\d\d))\] (.+)$`)
 var guardRegex *regexp.Regexp = regexp.MustCompile(`^Guard #(\d+) begins shift$`)
 
 type inputLine struct {
-	month int
-	day int
-	hour int
+	month  int
+	day    int
+	hour   int
 	minute int
-	date string
-	text string
+	date   string
+	text   string
 }
 
 func main() {
@@ -39,7 +39,7 @@ func solvePart1() int {
 		for _, minutes := range v {
 			total += minutes
 		}
-		if (total > max) {
+		if total > max {
 			guard = k
 			max = total
 		}
@@ -68,7 +68,7 @@ func solvePart2() int {
 	max := 0
 	for k, v := range asleep {
 		for i, w := range v {
-			if (w > max) {
+			if w > max {
 				guard = k
 				minute = i
 				max = w
@@ -98,7 +98,7 @@ func parseInput() map[int][60]int {
 		log.Fatal(err)
 	}
 
-	sort.Slice(inputLines, func (i, j int) bool {
+	sort.Slice(inputLines, func(i, j int) bool {
 		return inputLines[i].date < inputLines[j].date
 	})
 
@@ -108,10 +108,10 @@ func parseInput() map[int][60]int {
 		switch v.text {
 		case "falls asleep":
 		case "wakes up":
-			w := inputLines[i - 1]
+			w := inputLines[i-1]
 			if w.text != "falls asleep" || w.month != v.month || w.day != v.day || w.hour != 0 || v.hour != 0 || w.minute >= v.minute {
-				fmt.Printf("%04d %v", i - 1, w)
-				fmt.Printf("%04d %v", i    , v)
+				fmt.Printf("%04d %v", i-1, w)
+				fmt.Printf("%04d %v", i, v)
 				log.Fatal("Input lines don't fall into expectations")
 			}
 			for j := w.minute; j < v.minute; j++ {
@@ -130,11 +130,11 @@ func parseInput() map[int][60]int {
 
 func parseLine(line string) inputLine {
 	result := regex.FindStringSubmatch(line)
-	month  := StringToInt(result[2])
-	day    := StringToInt(result[3])
-	hour   := StringToInt(result[4])
+	month := StringToInt(result[2])
+	day := StringToInt(result[3])
+	hour := StringToInt(result[4])
 	minute := StringToInt(result[5])
-	date   := result[1]
-	text   := result[6]
+	date := result[1]
+	text := result[6]
 	return inputLine{month: month, day: day, hour: hour, minute: minute, date: date, text: text}
 }

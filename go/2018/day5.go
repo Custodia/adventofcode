@@ -1,21 +1,21 @@
 package main
 
 import (
+	. "adventofcode2018/helper"
 	"fmt"
 	"log"
 	"strings"
-	. "adventofcode2018/helper"
 )
 
-const fileName string = "../inputs/day5.txt"
+const fileName string = "../../inputs/2018/day5.txt"
 
 type inputLine struct {
-	month int
-	day int
-	hour int
+	month  int
+	day    int
+	hour   int
 	minute int
-	date string
-	text string
+	date   string
+	text   string
 }
 
 func main() {
@@ -37,7 +37,7 @@ func solvePart2() int {
 	polymer := []rune(input)
 	result := len(polymer)
 
-	for i := 0; i + 'A' <= 'Z'; i++ {
+	for i := 0; i+'A' <= 'Z'; i++ {
 		char := rune(i + 'A')
 		filteredPolymer := filterUnits(polymer, char)
 		length := reactedLength(filteredPolymer)
@@ -63,7 +63,7 @@ func filterUnits(runes []rune, char rune) []rune {
 	count := 0
 	result := make([]rune, len(runes))
 	for _, v := range runes {
-		if v != char && v != char + 32 {
+		if v != char && v != char+32 {
 			result[count] = v
 			count++
 		}
@@ -80,17 +80,17 @@ func filterAdjacent(runes []rune) (int, []rune) {
 		if i == 0 {
 			continue
 		}
-		w := runes[i - 1]
+		w := runes[i-1]
 		if prev {
 			prev = false
-			if i == length - 1 {
+			if i == length-1 {
 				result[count] = v
 				count++
 			}
 			continue
 		}
-		if (w - v == 32 || v - w == 32) {
-			if (strings.ToLower(string(w)) != strings.ToLower(string(v)) || v == w) {
+		if w-v == 32 || v-w == 32 {
+			if strings.ToLower(string(w)) != strings.ToLower(string(v)) || v == w {
 				log.Fatal("v and w are not the same letter")
 			}
 			prev = true
@@ -98,7 +98,7 @@ func filterAdjacent(runes []rune) (int, []rune) {
 		}
 		result[count] = w
 		count++
-		if i == length - 1 {
+		if i == length-1 {
 			result[count] = v
 			count++
 		}

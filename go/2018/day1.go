@@ -1,10 +1,10 @@
 package main
 
 import (
+	. "adventofcode2018/helper"
 	"fmt"
 	"log"
 	"strconv"
-	. "adventofcode2018/helper"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 }
 
 func solvePart1() int64 {
-	file, scanner := NewScanner("../inputs/day1.txt")
+	file, scanner := NewScanner("../../inputs/2018/day1.txt")
 	defer file.Close()
 
 	var count int64 = 0
@@ -41,7 +41,7 @@ func solvePart2() int64 {
 	set := make(map[int64]bool)
 
 	for !found {
-		file, scanner := NewScanner("../inputs/day1.txt")
+		file, scanner := NewScanner("../../inputs/2018/day1.txt")
 
 		for !found && scanner.Scan() {
 			text := scanner.Text()

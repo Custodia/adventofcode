@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2018.Day04 do
-  @filename "../2018/inputs/day04.txt"
+  @filename "../inputs/2018/day04.txt"
 
   @shift_begin_regex ~r/Guard #(\d+) begins shift/
   @asleep_regex ~r/\[\d{4}-\d{2}-\d{2} \d{2}:(\d{2})\] falls asleep/

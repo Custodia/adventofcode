@@ -19,6 +19,6 @@ coordsHelper (z:zs) c cs
 	      cy = y c
 
 main = do
-	file <- readFile "../inputs/problem031.txt"
+	file <- readFile "../../inputs/2015/problem031.txt"
 	let input = (lines file) !! 0
 	return (length . nub $ coords input)

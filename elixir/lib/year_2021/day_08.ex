@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2021.Day08 do
-  @filename "../2021/inputs/day08.txt"
+  @filename "../inputs/2021/day08.txt"
 
   @possible_chars String.graphemes("abcdefg")
 

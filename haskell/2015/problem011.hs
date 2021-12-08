@@ -7,6 +7,6 @@ solve (x:xs)
 
 
 main = do
-	file <- readFile "../inputs/problem011.txt"
+	file <- readFile "../../inputs/2015/problem011.txt"
 	let input = (lines file) !! 0
 	return (solve input)

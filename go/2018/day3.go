@@ -1,14 +1,14 @@
 package main
 
 import (
+	. "adventofcode2018/helper"
 	"fmt"
 	"log"
-	"strconv"
 	"regexp"
-	. "adventofcode2018/helper"
+	"strconv"
 )
 
-const fileName string = "../inputs/day3.txt"
+const fileName string = "../../inputs/2018/day3.txt"
 
 var regex *regexp.Regexp = regexp.MustCompile(`^#(\d+) @ (\d+),(\d+): (\d+)x(\d+)$`)
 
@@ -28,7 +28,7 @@ func solvePart1() int {
 		x, y, xx, yy := c[1], c[2], c[3], c[4]
 		for i := 0; i < xx; i++ {
 			for ii := 0; ii < yy; ii++ {
-				fabric[x + i][y + ii] += 1
+				fabric[x+i][y+ii] += 1
 			}
 		}
 	}
@@ -55,12 +55,12 @@ func solvePart2() int {
 		id, x, y, xx, yy := c[0], c[1], c[2], c[3], c[4]
 		for i := 0; i < xx; i++ {
 			for ii := 0; ii < yy; ii++ {
-				prevId := fabric[x + i][y + ii]
+				prevId := fabric[x+i][y+ii]
 				if prevId != 0 {
-					collisions[id - 1] = true
-					collisions[prevId - 1] = true
+					collisions[id-1] = true
+					collisions[prevId-1] = true
 				} else {
-					fabric[x + i][y + ii] = id
+					fabric[x+i][y+ii] = id
 				}
 			}
 		}
@@ -93,7 +93,6 @@ func parseInput() (int, [][5]int) {
 		log.Fatal(err)
 	}
 
-
 	return lineCount, claims
 }
 
@@ -105,10 +104,10 @@ func parseLine(text string) [5]int {
 			continue
 		}
 		e, err := strconv.Atoi(v)
-		if (err != nil) {
+		if err != nil {
 			log.Fatal(err)
 		}
-		result[i - 1] = e
+		result[i-1] = e
 	}
 	return result
 }
@@ -116,8 +115,8 @@ func parseLine(text string) [5]int {
 func countDimensions(vector [][5]int) (int, int) {
 	maxx, maxy := 0, 0
 	for _, c := range vector {
-		maxx = Max(maxx, c[1] + c[3])
-		maxy = Max(maxy, c[2] + c[4])
+		maxx = Max(maxx, c[1]+c[3])
+		maxy = Max(maxy, c[2]+c[4])
 	}
 	return maxx, maxy
 }

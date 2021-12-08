@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2021.Day07 do
-  @filename "../2021/inputs/day07.txt"
+  @filename "../inputs/2021/day07.txt"
 
   def part1 do
     numbers = File.read!(@filename) |> parse_input()

@@ -1,13 +1,13 @@
 package main
 
 import (
+	. "adventofcode2018/helper"
 	"fmt"
 	"log"
 	"sort"
-	. "adventofcode2018/helper"
 )
 
-const fileName string = "../inputs/day2.txt"
+const fileName string = "../../inputs/2018/day2.txt"
 
 func main() {
 	result1 := solvePart1()
@@ -66,14 +66,14 @@ func solvePart2() string {
 	i = 0
 	result := ""
 	for i, str := range slice {
-		nextStr := []rune(slice[i + 1])
+		nextStr := []rune(slice[i+1])
 		commonChars := []rune{}
 		for ii, rune := range str {
 			if rune == nextStr[ii] {
 				commonChars = append(commonChars, rune)
 			}
 		}
-		if len(commonChars) + 1 == len(str) {
+		if len(commonChars)+1 == len(str) {
 			result = string(commonChars)
 			break
 		}

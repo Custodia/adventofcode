@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2021.Day06 do
-  @filename "../2021/inputs/day06.txt"
+  @filename "../inputs/2021/day06.txt"
 
   def part1 do
     File.read!(@filename)

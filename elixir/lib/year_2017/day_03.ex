@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2017.Day03 do
-  @filename "../2017/inputs/day03.txt"
+  @filename "../inputs/2017/day03.txt"
 
   def part1 do
     input = get_input()

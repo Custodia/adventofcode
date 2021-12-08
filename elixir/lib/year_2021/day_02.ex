@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2021.Day02 do
-  @filename "../2021/inputs/day02.txt"
+  @filename "../inputs/2021/day02.txt"
 
   def part1 do
     result = File.stream!(@filename)
