@@ -2,7 +2,7 @@ defmodule AdventOfCode.Year2021.Day02 do
   @filename "../inputs/2021/day02.txt"
 
   def part1 do
-    result = File.stream!(@filename)
+    File.stream!(@filename)
     |> Stream.map(&String.trim/1)
     |> Stream.map(&String.split(&1, " "))
     |> Stream.map(fn [command, n] -> {command, String.to_integer(n)} end)
@@ -11,7 +11,7 @@ defmodule AdventOfCode.Year2021.Day02 do
   end
 
   def part2 do
-    result = File.stream!(@filename)
+    File.stream!(@filename)
     |> Stream.map(&String.trim/1)
     |> Stream.map(&String.split(&1, " "))
     |> Stream.map(fn [command, n] -> {command, String.to_integer(n)} end)

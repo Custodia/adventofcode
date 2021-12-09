@@ -43,7 +43,7 @@ defmodule AdventOfCode.Year2017.Day03 do
     |> Enum.reduce_while(%{}, &reduce_part2(&1, &2, input))
   end
 
-  defp reduce_part2({0, 0}, %{}, max) do
+  defp reduce_part2({0, 0}, %{}, _max) do
     {:cont, Map.put(%{}, {0, 0}, 1)}
   end
   defp reduce_part2({x, y}, coord_map, max) do
