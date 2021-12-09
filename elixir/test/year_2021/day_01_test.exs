@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2021.Day01Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "part1" do
     assert AdventOfCode.Year2021.Day01.part1 == 1832

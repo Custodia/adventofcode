@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Year2021.Day09Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias AdventOfCode.Year2021
 
   test "part1" do
