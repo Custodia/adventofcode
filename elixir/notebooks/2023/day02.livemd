@@ -1,0 +1,85 @@
+# 🎄 Year 2023 🔔 Day 02
+
+## Setup
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2023/day02.txt"
+lines = File.read!(filename) |> String.split("\n", trim: true)
+```
+
+## Part 1
+
+```elixir
+lines
+|> Enum.to_list()
+|> Enum.map(fn line ->
+  ["Game " <> game, rounds] = String.split(line, ":")
+  game = String.to_integer(game)
+
+  rounds =
+    String.split(rounds, ";")
+    |> Enum.map(fn round ->
+      String.split(round, ",")
+      |> Enum.map(&String.split(&1, " ", trim: true))
+      |> Enum.map(fn [count, color] -> {color, String.to_integer(count)} end)
+      |> Map.new()
+    end)
+
+  rgb_maxes =
+    rounds
+    |> Enum.reduce(%{}, fn e, acc ->
+      Map.merge(e, acc, fn _k, v1, v2 -> max(v1, v2) end)
+    end)
+    |> then(fn scores ->
+      {
+        Map.get(scores, "red", 0),
+        Map.get(scores, "green", 0),
+        Map.get(scores, "blue", 0)
+      }
+    end)
+
+  {game, rgb_maxes}
+end)
+|> Enum.filter(fn {_game, {r, g, b}} ->
+  r <= 12 && g <= 13 && b <= 14
+end)
+|> Enum.map(&elem(&1, 0))
+|> Enum.sum()
+```
+
+## Section
+
+```elixir
+lines
+|> Enum.to_list()
+|> Enum.map(fn line ->
+  ["Game " <> game, rounds] = String.split(line, ":")
+  game = String.to_integer(game)
+
+  rounds =
+    String.split(rounds, ";")
+    |> Enum.map(fn round ->
+      String.split(round, ",")
+      |> Enum.map(&String.split(&1, " ", trim: true))
+      |> Enum.map(fn [count, color] -> {color, String.to_integer(count)} end)
+      |> Map.new()
+    end)
+
+  rgb_maxes =
+    rounds
+    |> Enum.reduce(%{}, fn e, acc ->
+      Map.merge(e, acc, fn _k, v1, v2 -> max(v1, v2) end)
+    end)
+    |> then(fn scores ->
+      {
+        Map.get(scores, "red", 0),
+        Map.get(scores, "green", 0),
+        Map.get(scores, "blue", 0)
+      }
+    end)
+
+  {game, rgb_maxes}
+end)
+|> Enum.map(fn {_game, {r, g, b}} -> r * g * b end)
+|> Enum.sum()
+```
