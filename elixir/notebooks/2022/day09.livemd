@@ -1,0 +1,108 @@
+# 🎄 Year 2022 🔔 Day 09
+
+## Problem
+
+
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day09.txt"
+
+parsed_steps =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(fn line ->
+    [dir, steps] = line |> String.split()
+    {dir, String.to_integer(steps)}
+  end)
+```
+
+## Shared code
+
+## Part One
+
+```elixir
+defmodule Helper do
+  def step({head_coords, tail_coords}, dir) do
+    new_head_coords = step_head(head_coords, dir)
+    new_tail_coords = step_tail(new_head_coords, tail_coords)
+
+    {new_head_coords, new_tail_coords}
+  end
+
+  defp step_head({x, y}, "L"), do: {x - 1, y}
+  defp step_head({x, y}, "R"), do: {x + 1, y}
+  defp step_head({x, y}, "U"), do: {x, y + 1}
+  defp step_head({x, y}, "D"), do: {x, y - 1}
+
+  defp step_tail({hx, hy}, {tx, ty}) do
+    cond do
+      hx + 2 == tx ->
+        {tx - 1, hy}
+
+      hx - 2 == tx ->
+        {tx + 1, hy}
+
+      hy + 2 == ty ->
+        {hx, ty - 1}
+
+      hy - 2 == ty ->
+        {hx, ty + 1}
+
+      true ->
+        {tx, ty}
+    end
+  end
+end
+
+parsed_steps
+|> Enum.flat_map(fn {dir, steps} -> List.duplicate(dir, steps) end)
+|> Enum.scan({{0, 0}, {0, 0}}, &Helper.step(&2, &1))
+|> then(&[{{0, 0}, {0, 0}} | &1])
+|> Enum.map(&elem(&1, 1))
+|> Enum.uniq()
+|> Enum.count()
+```
+
+## Part two
+
+```elixir
+hx = 54
+tx = 52
+
+div(hx - tx, abs(hx - tx))
+```
+
+```elixir
+defmodule Helper do
+  def step([head_coords | tail_coords], dir) do
+    new_head_coords = step_head(head_coords, dir)
+    new_tail_coords = Enum.scan(tail_coords, new_head_coords, &step_tail(&2, &1))
+
+    [new_head_coords | new_tail_coords]
+  end
+
+  defp step_head({x, y}, "L"), do: {x - 1, y}
+  defp step_head({x, y}, "R"), do: {x + 1, y}
+  defp step_head({x, y}, "U"), do: {x, y + 1}
+  defp step_head({x, y}, "D"), do: {x, y - 1}
+
+  defp step_tail({hx, hy}, {tx, ty}) do
+    if abs(hx - tx) >= 2 || abs(hy - ty) >= 2 do
+      nx = if hx != tx, do: tx + div(hx - tx, abs(hx - tx)), else: tx
+      ny = if hy != ty, do: ty + div(hy - ty, abs(hy - ty)), else: ty
+      {nx, ny}
+    else
+      {tx, ty}
+    end
+  end
+end
+
+parsed_steps
+|> Enum.flat_map(fn {dir, steps} -> List.duplicate(dir, steps) end)
+|> Enum.scan(List.duplicate({0, 0}, 10), &Helper.step(&2, &1))
+|> Enum.map(&Enum.at(&1, 9))
+|> Enum.uniq()
+|> Enum.count()
+```

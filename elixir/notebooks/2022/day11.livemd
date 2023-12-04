@@ -1,0 +1,151 @@
+# 🎄 Year 2022 🔔 Day 11
+
+## Problem
+
+
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day11.txt"
+
+defmodule Parser do
+  def parse_line([monkey_id, starting_items, operation, test, if_true, if_false]) do
+    {
+      parse_monkey_id(monkey_id),
+      %{
+        items: parse_starting_items(starting_items),
+        operation: parse_operation(operation),
+        test: parse_test(test),
+        if_true: parse_if_true(if_true),
+        if_false: parse_if_false(if_false),
+        inspections: 0
+      }
+    }
+  end
+
+  defp parse_monkey_id("Monkey " <> monkey_id), do: String.to_integer(monkey_id)
+
+  defp parse_starting_items("Starting items: " <> starting_items),
+    do: String.split(starting_items, ", ") |> Enum.map(&String.to_integer/1)
+
+  defp parse_operation("Operation: new = " <> operation) do
+    String.split(operation, " ")
+    |> Enum.map(fn e ->
+      case Integer.parse(e) do
+        {n, ""} -> n
+        :error -> e
+      end
+    end)
+  end
+
+  defp parse_test("Test: divisible by " <> n), do: String.to_integer(n)
+  defp parse_if_false("If false: throw to monkey " <> n), do: String.to_integer(n)
+  defp parse_if_true("If true: throw to monkey " <> n), do: String.to_integer(n)
+end
+
+starting_monkeys =
+  File.read!(filename)
+  |> String.split("\n\n")
+  |> Enum.map(&String.split(&1, "\n"))
+  |> Enum.map(fn list ->
+    Enum.map(list, fn line ->
+      String.trim(line, " ") |> String.trim(",") |> String.trim(":")
+    end)
+  end)
+  |> Enum.map(&Enum.reject(&1, fn e -> e == "" end))
+  |> Enum.map(&Parser.parse_line/1)
+  |> Map.new()
+
+monkey_count = Enum.count(starting_monkeys)
+```
+
+## Shared code
+
+```elixir
+defmodule MonkeyBusiness do
+  def operate(["old", "+", "old"], item), do: item + item
+  def operate(["old", "+", n], item), do: item + n
+  def operate(["old", "*", "old"], item), do: item * item
+  def operate(["old", "*", n], item), do: item * n
+
+  def perform_round(monkeys, worry_divider, keep_worry_remainder) do
+    monkey_count = Enum.count(monkeys)
+
+    0..(monkey_count - 1)
+    |> Enum.reduce(monkeys, fn monkey_id, monkeys ->
+      %{
+        items: items,
+        operation: operation,
+        test: test,
+        if_true: if_true,
+        if_false: if_false,
+        inspections: inspections
+      } = Map.fetch!(monkeys, monkey_id)
+
+      new_inspections = inspections + Enum.count(items)
+
+      %{true: true_items, false: false_items} =
+        items
+        |> Enum.map(&MonkeyBusiness.operate(operation, &1))
+        |> Enum.map(fn e ->
+          if keep_worry_remainder do
+            rem(e, worry_divider)
+          else
+            div(e, worry_divider)
+          end
+        end)
+        |> Enum.group_by(fn e -> rem(e, test) == 0 end)
+        |> then(&Map.merge(%{true: [], false: []}, &1))
+
+      monkeys
+      |> Map.update!(monkey_id, &Map.update!(&1, :items, fn _items -> [] end))
+      |> Map.update!(monkey_id, &Map.update!(&1, :inspections, fn _ -> new_inspections end))
+      |> Map.update!(
+        if_true,
+        &Map.update!(&1, :items, fn items -> Enum.concat(items, true_items) end)
+      )
+      |> Map.update!(
+        if_false,
+        &Map.update!(&1, :items, fn items -> Enum.concat(items, false_items) end)
+      )
+    end)
+  end
+end
+```
+
+## Part One
+
+
+
+```elixir
+Stream.repeatedly(fn -> nil end)
+|> Enum.take(20)
+|> Enum.reduce(starting_monkeys, fn nil, monkeys ->
+  MonkeyBusiness.perform_round(monkeys, 3, false)
+end)
+|> Enum.map(fn {monkey_id, monkey_map} -> Map.fetch!(monkey_map, :inspections) end)
+|> Enum.sort(:desc)
+|> Enum.take(2)
+|> Enum.product()
+```
+
+## Part two
+
+```elixir
+worry_divider =
+  starting_monkeys
+  |> Enum.map(fn {_, %{test: test}} -> test end)
+  |> Enum.uniq()
+  |> Enum.product()
+
+Stream.repeatedly(fn -> nil end)
+|> Enum.take(10000)
+|> Enum.reduce(starting_monkeys, fn nil, monkeys ->
+  MonkeyBusiness.perform_round(monkeys, worry_divider, true)
+end)
+|> Enum.map(fn {monkey_id, monkey_map} -> Map.fetch!(monkey_map, :inspections) end)
+|> Enum.sort(:desc)
+|> Enum.take(2)
+|> Enum.product()
+```

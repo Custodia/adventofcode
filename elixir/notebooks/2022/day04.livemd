@@ -1,0 +1,39 @@
+# 🎄 Year 2022 🔔 Day 04
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day04.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(fn line ->
+    String.split(line, ",")
+    |> Enum.flat_map(&String.split(&1, "-"))
+    |> Enum.map(&String.to_integer/1)
+  end)
+```
+
+## Part One
+
+```elixir
+parsed_input_stream
+|> Enum.filter(fn [s1, e1, s2, e2] ->
+  (s1 >= s2 && e1 <= e2) || (s2 >= s1 && e2 <= e1)
+end)
+|> Enum.count()
+```
+
+## Part two
+
+```elixir
+parsed_input_stream
+|> Enum.filter(fn [s1, e1, s2, e2] ->
+  (s1 >= s2 && s1 <= e2) ||
+    (e1 >= s2 && e1 <= e2) ||
+    (s2 >= s1 && s2 <= e1) ||
+    (e2 >= s1 && s2 <= e1)
+end)
+|> Enum.count()
+```

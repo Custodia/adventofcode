@@ -1,0 +1,77 @@
+# 🎄 Year 2022 🔔 Day 07
+
+## Problem
+
+
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day07.txt"
+
+input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim(&1, "\n"))
+  |> Enum.map(&String.split/1)
+```
+
+## Shared code
+
+```elixir
+defmodule Helper do
+  def find_directory_sizes(lines) do
+    initial_state = %{pwd: ["/"], files: []}
+
+    lines
+    |> Enum.reduce(initial_state, &Helper.parse_line(&2, &1))
+    |> Map.fetch!(:files)
+    |> Enum.reduce(%{}, fn {pwd, file_size}, dir_sizes ->
+      dirs = Enum.drop(pwd, -1) |> Enum.scan([], &[&1 | &2]) |> Enum.map(&Enum.reverse/1)
+      file_size = String.to_integer(file_size)
+
+      dirs
+      |> Enum.reduce(dir_sizes, &Map.update(&2, &1, file_size, fn size -> size + file_size end))
+    end)
+  end
+
+  def parse_line(state, ["$", "ls"]), do: state
+  def parse_line(state, ["$", "cd", "/"]), do: Map.put(state, :pwd, ["/"])
+
+  def parse_line(state, ["$", "cd", ".."]),
+    do: Map.update!(state, :pwd, fn pwd -> Enum.drop(pwd, -1) end)
+
+  def parse_line(state, ["$", "cd", dir]),
+    do: Map.update!(state, :pwd, fn pwd -> Enum.concat(pwd, [dir]) end)
+
+  def parse_line(state, ["dir", _dir]), do: state
+
+  def parse_line(state = %{pwd: pwd}, [file_size, file]),
+    do:
+      Map.update!(state, :files, fn files ->
+        Enum.concat(files, [{Enum.concat(pwd, [file]), file_size}])
+      end)
+end
+```
+
+## Part One
+
+```elixir
+Helper.find_directory_sizes(input_stream)
+|> Enum.map(&elem(&1, 1))
+|> Enum.filter(&(&1 <= 100_000))
+|> Enum.sum()
+```
+
+## Part two
+
+```elixir
+dir_sizes = %{["/"] => total_size} = Helper.find_directory_sizes(input_stream)
+
+space_needed = 70_000_000 - 30_000_000
+delete_atleast = total_size - space_needed
+
+dir_sizes
+|> Enum.map(&elem(&1, 1))
+|> Enum.sort()
+|> Enum.find(&(&1 > delete_atleast))
+```

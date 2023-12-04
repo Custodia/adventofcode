@@ -1,0 +1,69 @@
+# 🎄 Year 2022 🔔 Day 25
+
+## Problem
+
+
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day25.txt"
+
+lines = File.stream!(filename) |> Enum.map(&String.trim/1)
+```
+
+## Shared code
+
+```elixir
+defmodule Helper do
+  def snafu_to_integer("="), do: -2
+  def snafu_to_integer("-"), do: -1
+  def snafu_to_integer("0"), do: 0
+  def snafu_to_integer("1"), do: 1
+  def snafu_to_integer("2"), do: 2
+
+  def snafu_to_integer(snafu) do
+    snafu
+    |> String.graphemes()
+    |> Enum.reverse()
+    |> Enum.map(&snafu_to_integer/1)
+    |> Enum.with_index(fn e, i -> 5 ** i * e end)
+    |> Enum.sum()
+  end
+
+  def integer_to_snafu(-2), do: "="
+  def integer_to_snafu(-1), do: "-"
+  def integer_to_snafu(0), do: "0"
+  def integer_to_snafu(1), do: "1"
+  def integer_to_snafu(2), do: "2"
+
+  def integer_to_snafu(target) when target > 0 do
+    {length, starting_guess} =
+      Stream.iterate(0, &(&1 + 1))
+      |> Enum.reduce_while(1, fn index, prev ->
+        new = prev + 2 * 5 ** index
+        if new >= target, do: {:halt, {index + 1, prev}}, else: {:cont, new}
+      end)
+
+    [1 | List.duplicate(-2, length - 1)]
+    |> Enum.with_index(fn e, i -> {e, length - i - 1} end)
+    |> Enum.map_reduce(target - starting_guess, fn {e, digit}, remaining ->
+      new_remaining = rem(remaining, 5 ** digit)
+      increase = div(remaining, 5 ** digit)
+      {e + increase, new_remaining}
+    end)
+    |> elem(0)
+    |> Enum.map(&integer_to_snafu/1)
+    |> Enum.join()
+  end
+end
+```
+
+## Part One
+
+
+
+```elixir
+list_sum = lines |> Enum.map(&Helper.snafu_to_integer/1) |> Enum.sum()
+Helper.integer_to_snafu(list_sum)
+```

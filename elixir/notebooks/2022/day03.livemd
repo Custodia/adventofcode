@@ -1,0 +1,39 @@
+# 🎄 Year 2022 🔔 Day 03
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day03.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+```
+
+## Part One
+
+```elixir
+parsed_input_stream
+|> Enum.map(fn bag -> String.split_at(bag, div(String.length(bag), 2)) end)
+|> Enum.map(fn {l, r} -> {String.graphemes(l), String.graphemes(r)} end)
+|> Enum.map(fn {l, r} -> Enum.filter(l, fn e -> Enum.any?(r, &(&1 == e)) end) end)
+|> Enum.flat_map(&Enum.uniq/1)
+|> Enum.map(&String.to_charlist/1)
+|> Enum.map(fn [char] -> if char >= 97, do: char - 96, else: char - 38 end)
+|> Enum.sum()
+```
+
+## Part two
+
+```elixir
+parsed_input_stream
+|> Enum.map(&String.to_charlist/1)
+|> Enum.map(&Enum.map(&1, fn char -> if char >= 97, do: char - 96, else: char - 38 end))
+|> Enum.chunk_every(3)
+|> Enum.map(fn [al, bl, cl] ->
+  Enum.find(al, fn a ->
+    Enum.any?(bl, &(&1 == a)) && Enum.any?(cl, &(&1 == a))
+  end)
+end)
+|> Enum.sum()
+```

@@ -1,0 +1,34 @@
+# 🎄 Year 2022 🔔 Day 01
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day01.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.chunk_by(fn e -> e == "" end)
+  |> Enum.take_every(2)
+  |> Enum.map(fn meals -> Enum.map(meals, &String.to_integer/1) end)
+```
+
+## Shared code
+
+## Part One
+
+```elixir
+parsed_input_stream
+|> Enum.map(&Enum.sum/1)
+|> Enum.max()
+```
+
+## Part two
+
+```elixir
+parsed_input_stream
+|> Enum.map(&Enum.sum/1)
+|> Enum.sort(:desc)
+|> Enum.take(3)
+|> Enum.sum()
+```

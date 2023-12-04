@@ -1,0 +1,78 @@
+# 🎄 Year 2022 🔔 Day 08
+
+## Problem
+
+
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day08.txt"
+
+left_to_right =
+  File.stream!(filename)
+  |> Enum.map(&String.trim(&1, "\n"))
+  |> Enum.map(fn line -> line |> String.graphemes() |> Enum.map(&String.to_integer/1) end)
+  |> Enum.with_index(fn line, y ->
+    Enum.with_index(line, fn e, x -> {{x, y}, e} end)
+  end)
+
+right_to_left = left_to_right |> Enum.map(&Enum.reverse/1)
+top_to_bottom = left_to_right |> List.zip() |> Enum.map(&Tuple.to_list/1)
+bottom_to_top = top_to_bottom |> Enum.map(&Enum.reverse/1)
+
+max_y = left_to_right |> Enum.count() |> then(&(&1 - 1))
+max_x = top_to_bottom |> Enum.count() |> then(&(&1 - 1))
+```
+
+## Shared code
+
+## Part One
+
+```elixir
+Enum.concat([left_to_right, right_to_left, top_to_bottom, bottom_to_top])
+|> Enum.flat_map(fn [head | tail] ->
+  Enum.reduce_while(tail, [head], fn e = {_, h}, acc = [{_, max_h} | _] ->
+    cond do
+      max_h == 9 ->
+        {:halt, acc}
+
+      h > max_h ->
+        {:cont, [e | acc]}
+
+      true ->
+        {:cont, acc}
+    end
+  end)
+end)
+|> Enum.uniq()
+|> Enum.count()
+```
+
+## Part two
+
+```elixir
+defmodule Helper do
+  def take_until(list, func) do
+    list
+    |> Enum.reduce_while([], fn e, acc ->
+      if func.(e), do: {:cont, [e | acc]}, else: {:halt, [e | acc]}
+    end)
+    |> Enum.reverse()
+  end
+end
+
+Enum.concat([left_to_right, right_to_left, top_to_bottom, bottom_to_top])
+|> Enum.flat_map(&Enum.scan(&1, [], fn e, acc -> [e | acc] end))
+|> Enum.reduce(%{}, fn [{coord, head} | tail], tree_map ->
+  if tail != [] do
+    distance = Helper.take_until(tail, fn {_, e} -> e < head end) |> Enum.count()
+
+    tree_map |> Map.update(coord, distance, &(&1 * distance))
+  else
+    tree_map |> Map.put(coord, 0)
+  end
+end)
+|> Enum.map(&elem(&1, 1))
+|> Enum.max()
+```

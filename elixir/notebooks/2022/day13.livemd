@@ -1,0 +1,76 @@
+# 🎄 Year 2022 🔔 Day 13
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day13.txt"
+
+signals =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.chunk_every(2, 3)
+  |> Enum.map(
+    &Enum.map(&1, fn string ->
+      {parsed, []} = Code.eval_string(string)
+      parsed
+    end)
+  )
+```
+
+## Shared Code
+
+```elixir
+defmodule Helper do
+  def compare([], []), do: :inconclusive
+  def compare([], [_ | _]), do: true
+  def compare([_ | _], []), do: false
+
+  def compare([a | atail], [b | btail]) when is_integer(a) and is_integer(b) do
+    cond do
+      a == b -> compare(atail, btail)
+      a < b -> true
+      true -> false
+    end
+  end
+
+  def compare([a | atail], [b | btail]) do
+    a = if is_list(a), do: a, else: [a]
+    b = if is_list(b), do: b, else: [b]
+
+    case compare(a, b) do
+      :inconclusive -> compare(atail, btail)
+      result -> result
+    end
+  end
+end
+```
+
+## Part One
+
+```elixir
+signals
+|> Enum.map(fn [left, right] -> Helper.compare(left, right) end)
+|> Enum.with_index(1)
+|> Enum.filter(&elem(&1, 0))
+|> Enum.map(&elem(&1, 1))
+|> Enum.sum()
+```
+
+## Part two
+
+```elixir
+Enum.sort_by(1..100, &(rem(&1, 2) == 0), :desc)
+```
+
+```elixir
+divider_packets = [[[2]], [[6]]]
+
+signals
+|> Enum.concat([divider_packets])
+|> Enum.concat()
+|> Enum.sort(fn left, right -> Helper.compare(left, right) end)
+|> Enum.with_index(1)
+|> Enum.filter(fn {packet, i} -> Enum.any?(divider_packets, &(&1 == packet)) end)
+|> Enum.map(&elem(&1, 1))
+|> Enum.product()
+```

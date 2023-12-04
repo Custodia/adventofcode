@@ -1,0 +1,95 @@
+# 🎄 Year 2022 🔔 Day 12
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day12.txt"
+
+{coords, {start_coord, end_coord}} =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(&String.to_charlist/1)
+  |> Enum.with_index(fn list, y ->
+    Enum.with_index(list, fn e, x -> {{x, y}, e} end)
+  end)
+  |> Enum.concat()
+  |> Enum.map_reduce({nil, nil}, fn e, {start_coord, end_coord} ->
+    case e do
+      {coord, 83} -> {{coord, 97}, {coord, end_coord}}
+      {coord, 69} -> {{coord, 122}, {start_coord, coord}}
+      _ -> {e, {start_coord, end_coord}}
+    end
+  end)
+
+coords = Map.new(coords)
+```
+
+## Part One
+
+```elixir
+defmodule Helper do
+  def get_adjacent({{x, y}, e}, coords) do
+    [{x, y + 1}, {x + 1, y}, {x, y - 1}, {x - 1, y}]
+    |> Enum.map(fn coord -> {coord, Map.get(coords, coord, :error)} end)
+    |> Enum.filter(fn {_, v} -> v != :error end)
+    |> Enum.filter(fn {_, v} -> v <= e + 1 end)
+  end
+end
+
+starting_state = %{
+  steps: 0,
+  current_coords: [{start_coord, Map.fetch!(coords, start_coord)}],
+  coords: coords
+}
+
+Stream.iterate(starting_state, fn acc ->
+  %{steps: steps, current_coords: current_coords, coords: coords} = acc
+  steps = steps + 1
+  coords = coords |> Enum.reject(fn e -> Enum.any?(current_coords, &(&1 == e)) end) |> Map.new()
+
+  current_coords =
+    current_coords |> Enum.flat_map(&Helper.get_adjacent(&1, coords)) |> Enum.uniq()
+
+  %{steps: steps, current_coords: current_coords, coords: coords}
+end)
+|> Enum.find_value(fn %{steps: steps, current_coords: current_coords} ->
+  if Enum.any?(current_coords, fn {coord, _} -> coord == end_coord end) || current_coords == [],
+    do: steps,
+    else: false
+end)
+```
+
+## Part two
+
+```elixir
+defmodule Helper do
+  def get_adjacent({{x, y}, e}, coords) do
+    [{x, y + 1}, {x + 1, y}, {x, y - 1}, {x - 1, y}]
+    |> Enum.map(fn coord -> {coord, Map.get(coords, coord, :error)} end)
+    |> Enum.filter(fn {_, v} -> v != :error end)
+    |> Enum.filter(fn {_, v} -> e <= v + 1 end)
+  end
+end
+
+starting_state = %{
+  steps: 0,
+  current_coords: [{end_coord, Map.fetch!(coords, end_coord)}],
+  coords: coords
+}
+
+Stream.iterate(starting_state, fn acc ->
+  %{steps: steps, current_coords: current_coords, coords: coords} = acc
+  steps = steps + 1
+  coords = coords |> Enum.reject(fn e -> Enum.any?(current_coords, &(&1 == e)) end) |> Map.new()
+
+  current_coords =
+    current_coords |> Enum.flat_map(&Helper.get_adjacent(&1, coords)) |> Enum.uniq()
+
+  %{steps: steps, current_coords: current_coords, coords: coords}
+end)
+|> Enum.find_value(fn %{steps: steps, current_coords: current_coords} ->
+  if Enum.any?(current_coords, fn {_, v} -> v == 97 end) || current_coords == [],
+    do: steps,
+    else: false
+end)
+```

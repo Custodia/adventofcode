@@ -1,0 +1,83 @@
+# 🎄 Year 2022 🔔 Day 10
+
+## Problem
+
+
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day10.txt"
+
+instructions =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.flat_map(fn instruction ->
+    case String.split(instruction) do
+      ["noop"] -> [:noop]
+      ["addx", count] -> [:addx, {:addx, String.to_integer(count)}]
+    end
+  end)
+
+parsed_steps =
+  instructions
+  |> Enum.map(fn instruction ->
+    case instruction do
+      :noop -> 0
+      :addx -> 0
+      {:addx, count} -> count
+    end
+  end)
+```
+
+## Shared code
+
+## Part One
+
+
+
+```elixir
+parsed_steps
+|> Enum.scan(1, &(&1 + &2))
+|> Enum.zip(instructions)
+|> then(&[{0, "asdf"} | &1])
+|> Enum.with_index(fn {a, b}, i -> {a, b, i} end)
+|> Enum.take_every(20)
+|> Enum.drop_every(2)
+|> Enum.map(fn state ->
+  case state do
+    {register, {:addx, count}, i} -> {register - count, i}
+    {register, _, i} -> {register, i}
+  end
+end)
+|> Enum.map(fn {register, index} -> register * index end)
+|> Enum.sum()
+```
+
+## Part two
+
+```elixir
+rem(46, 40)
+```
+
+```elixir
+parsed_steps
+|> Enum.scan(1, &(&1 + &2))
+|> Enum.zip(instructions)
+|> Enum.with_index(fn {a, b}, i -> {a, b, i} end)
+|> Enum.map(fn state = {_, _, index} ->
+  register =
+    case state do
+      {register, {:addx, count}, i} -> register - count
+      {register, _, i} -> register
+    end
+
+  index = rem(index, 40)
+
+  if register >= index - 1 && register <= index + 1, do: "#", else: "."
+end)
+|> Enum.chunk_every(40)
+|> Enum.map(&Enum.join/1)
+|> Enum.join("\n")
+|> IO.puts()
+```

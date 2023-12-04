@@ -1,0 +1,75 @@
+# 🎄 Year 2022 🔔 Day 02
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2022/day02.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(&String.split/1)
+```
+
+## Shared code
+
+```elixir
+
+```
+
+## Part One
+
+```elixir
+defmodule Helper do
+  def calculate_score({l, r}) do
+    options = String.graphemes("ABCABC")
+    ri = Enum.find_index(options, &(&1 == r))
+
+    cond do
+      l == Enum.at(options, ri + 1) ->
+        0 + choice_score(r)
+
+      l == r ->
+        3 + choice_score(r)
+
+      l == Enum.at(options, ri - 1) ->
+        6 + choice_score(r)
+    end
+  end
+
+  defp choice_score("A"), do: 1
+  defp choice_score("B"), do: 2
+  defp choice_score("C"), do: 3
+end
+
+mappings = %{"X" => "A", "Y" => "B", "Z" => "C"}
+
+parsed_input_stream
+|> Enum.map(fn [l, r] -> {l, mappings[r]} end)
+|> Enum.map(&Helper.calculate_score/1)
+|> Enum.sum()
+```
+
+## Part two
+
+```elixir
+options = String.graphemes("ABCABC")
+choice_score = fn choice -> Enum.find_index(String.graphemes("ABC"), &(&1 == choice)) + 1 end
+
+parsed_input_stream
+|> Enum.map(fn [l, r] ->
+  li = Enum.find_index(options, &(&1 == l))
+
+  case r do
+    "X" ->
+      0 + choice_score.(Enum.at(options, li - 1))
+
+    "Y" ->
+      3 + choice_score.(l)
+
+    "Z" ->
+      6 + choice_score.(Enum.at(options, li + 1))
+  end
+end)
+|> Enum.sum()
+```
