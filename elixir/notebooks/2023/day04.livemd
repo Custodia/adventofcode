@@ -1,0 +1,61 @@
+# 🎄 Year 2023 🔔 Day 04
+
+## Setup
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2023/day04.txt"
+
+parsed_lines =
+  File.read!(filename)
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    [_, line] = String.split(line, ":")
+    [w_numbers, own_numbers] = String.split(line, "|")
+    w_numbers = String.split(w_numbers, " ", trim: true) |> Enum.map(&String.to_integer/1)
+    own_numbers = String.split(own_numbers, " ", trim: true) |> Enum.map(&String.to_integer/1)
+    {w_numbers, own_numbers}
+  end)
+```
+
+## Part 1
+
+```elixir
+parsed_lines
+|> Enum.map(fn {w_numbers, own_numbers} ->
+  count = Enum.count(w_numbers, fn wn -> Enum.any?(own_numbers, fn on -> wn == on end) end)
+  if count == 0, do: 0, else: Integer.pow(2, count - 1)
+end)
+|> Enum.sum()
+```
+
+## Section
+
+```elixir
+defmodule Helper do
+  def process_scratch_cards(cards, used_cards \\ [])
+
+  def process_scratch_cards([], used_cards),
+    do: used_cards |> Enum.map(&elem(&1, 2)) |> Enum.sum()
+
+  def process_scratch_cards([{_, _, 0} | _], used_cards),
+    do: used_cards |> Enum.map(&elem(&1, 2)) |> Enum.sum()
+
+  def process_scratch_cards([card = {w_numbers, own_numbers, count} | cards], used_cards) do
+    add_to = Enum.count(w_numbers, fn wn -> Enum.any?(own_numbers, fn on -> wn == on end) end)
+
+    new_cards =
+      cards
+      |> Enum.with_index(fn e = {w_numbers, own_numbers, current_count}, i ->
+        if i < add_to, do: {w_numbers, own_numbers, current_count + count}, else: e
+      end)
+
+    process_scratch_cards(new_cards, [card | used_cards])
+  end
+end
+
+parsed_lines
+|> Enum.map(fn {w_numbers, own_numbers} ->
+  {w_numbers, own_numbers, 1}
+end)
+|> Helper.process_scratch_cards()
+```
