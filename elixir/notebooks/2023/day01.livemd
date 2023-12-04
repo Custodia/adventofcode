@@ -1,0 +1,79 @@
+# 🎄 Year 2023 🔔 Day 01
+
+## Setup
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2023/day01.txt"
+stream = File.stream!(filename)
+```
+
+## Part 1
+
+```elixir
+stream
+|> Enum.map(fn line ->
+  line
+  |> String.replace(~r/[^\d]+/, "")
+  |> String.graphemes()
+  |> Enum.map(&String.to_integer/1)
+  |> then(fn chars ->
+    List.first(chars) * 10 + List.last(chars)
+  end)
+end)
+|> Enum.sum()
+```
+
+## Section
+
+```elixir
+defmodule Helper do
+  def decode_line(line, result \\ [])
+  def decode_line("", result), do: Enum.reverse(result)
+
+  def decode_line(line, result) do
+    <<_::binary-size(1)>> <> next = line
+
+    case line do
+      "one" <> _ ->
+        decode_line(next, [1 | result])
+
+      "two" <> _ ->
+        decode_line(next, [2 | result])
+
+      "three" <> _ ->
+        decode_line(next, [3 | result])
+
+      "four" <> _ ->
+        decode_line(next, [4 | result])
+
+      "five" <> _ ->
+        decode_line(next, [5 | result])
+
+      "six" <> _ ->
+        decode_line(next, [6 | result])
+
+      "seven" <> _ ->
+        decode_line(next, [7 | result])
+
+      "eight" <> _ ->
+        decode_line(next, [8 | result])
+
+      "nine" <> _ ->
+        decode_line(next, [9 | result])
+
+      <<char::binary-size(1)>> <> _ ->
+        case Integer.parse(char) do
+          {digit, ""} -> decode_line(next, [digit | result])
+          :error -> decode_line(next, result)
+        end
+    end
+  end
+end
+
+stream
+|> Enum.map(&Helper.decode_line/1)
+|> Enum.map(fn digits ->
+  List.first(digits) * 10 + List.last(digits)
+end)
+|> Enum.sum()
+```
