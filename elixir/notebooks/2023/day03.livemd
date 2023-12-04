@@ -1,0 +1,166 @@
+# 🎄 Year 2023 🔔 Day 03
+
+## Setup
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2023/day03.txt"
+file = File.read!(filename)
+```
+
+## Part 1
+
+```elixir
+parse_char = fn char ->
+  case Integer.parse(char) do
+    {int, ""} -> int
+    _ -> char
+  end
+end
+
+is_symbol? = fn
+  "." -> false
+  char when is_integer(char) -> false
+  _ -> true
+end
+
+{coords, numbers} =
+  String.split(file, "\n", trim: true)
+  |> Enum.with_index()
+  |> Enum.map(fn {line, y} ->
+    line
+    |> String.graphemes()
+    |> Enum.with_index(fn char, x -> {{x, y}, char} end)
+  end)
+  |> Enum.reduce({[], []}, fn line, {all_coords, all_numbers} ->
+    {coords, numbers} =
+      Enum.map_reduce(line, [], fn {{x, y}, char}, acc ->
+        parsed_char = parse_char.(char)
+        is_symbol = is_symbol?.(parsed_char)
+        new_e = {{x, y}, is_symbol}
+
+        case acc do
+          _ when not is_integer(parsed_char) ->
+            {new_e, acc}
+
+          [] ->
+            {new_e, [{[parsed_char], _min_x = x, _max_x = x, y} | acc]}
+
+          [{digits, min_x, max_x, ^y} | acc_tail] when max_x + 1 == x ->
+            {new_e, [{[parsed_char | digits], min_x, _new_max_x = x, y} | acc_tail]}
+
+          _ ->
+            {new_e, [{[parsed_char], _min_x = x, _max_x = x, y} | acc]}
+        end
+      end)
+
+    numbers =
+      numbers
+      |> Enum.reverse()
+      |> Enum.map(fn {reverse_digits, min_x, max_x, y} ->
+        number = reverse_digits |> Enum.reverse() |> Integer.undigits()
+        {number, min_x, max_x, y}
+      end)
+
+    {[coords | all_coords], [numbers | all_numbers]}
+  end)
+  |> then(fn {coords, numbers} ->
+    coords = coords |> Enum.reverse() |> Enum.concat() |> Map.new()
+    numbers = numbers |> Enum.reverse() |> Enum.concat()
+    {coords, numbers}
+  end)
+
+Enum.reduce(numbers, 0, fn {number, min_x, max_x, y}, sum ->
+  target_coords =
+    for(x <- (min_x - 1)..(max_x + 1), y <- [y - 1, y + 1], do: {x, y})
+    |> Enum.concat([{min_x - 1, y}, {max_x + 1, y}])
+
+  if Enum.any?(target_coords, fn target_coord -> Map.get(coords, target_coord, false) end) do
+    sum + number
+  else
+    sum
+  end
+end)
+```
+
+## Section
+
+```elixir
+parse_char = fn char ->
+  case Integer.parse(char) do
+    {int, ""} -> int
+    _ -> char
+  end
+end
+
+is_symbol? = fn
+  "." -> false
+  char when is_integer(char) -> false
+  _ -> true
+end
+
+{coords, numbers} =
+  String.split(file, "\n", trim: true)
+  |> Enum.with_index()
+  |> Enum.map(fn {line, y} ->
+    line
+    |> String.graphemes()
+    |> Enum.with_index(fn char, x -> {{x, y}, char} end)
+  end)
+  |> Enum.reduce({[], []}, fn line, {all_coords, all_numbers} ->
+    {coords, numbers} =
+      Enum.map_reduce(line, [], fn {{x, y}, char}, acc ->
+        parsed_char = parse_char.(char)
+        is_symbol = char == "*"
+        new_e = {{x, y}, is_symbol}
+
+        case acc do
+          _ when not is_integer(parsed_char) ->
+            {new_e, acc}
+
+          [] ->
+            {new_e, [{[parsed_char], _min_x = x, _max_x = x, y} | acc]}
+
+          [{digits, min_x, max_x, ^y} | acc_tail] when max_x + 1 == x ->
+            {new_e, [{[parsed_char | digits], min_x, _new_max_x = x, y} | acc_tail]}
+
+          _ ->
+            {new_e, [{[parsed_char], _min_x = x, _max_x = x, y} | acc]}
+        end
+      end)
+
+    numbers =
+      numbers
+      |> Enum.reverse()
+      |> Enum.map(fn {reverse_digits, min_x, max_x, y} ->
+        number = reverse_digits |> Enum.reverse() |> Integer.undigits()
+        {number, min_x, max_x, y}
+      end)
+
+    {[coords | all_coords], [numbers | all_numbers]}
+  end)
+  |> then(fn {coords, numbers} ->
+    coords =
+      coords
+      |> Enum.reverse()
+      |> Enum.concat()
+      |> Enum.filter(fn {{_x, _y}, is_symbol} -> is_symbol end)
+      |> Enum.map(&elem(&1, 0))
+
+    numbers = numbers |> Enum.reverse() |> Enum.concat()
+    {coords, numbers}
+  end)
+
+result =
+  Enum.reduce(coords, 0, fn {x, y}, sum ->
+    adjacent_numbers =
+      Enum.filter(numbers, fn {_number, min_x, max_x, ny} ->
+        x >= min_x - 1 && x <= max_x + 1 && ny >= y - 1 && ny <= y + 1
+      end)
+      |> Enum.map(&elem(&1, 0))
+
+    case adjacent_numbers do
+      [n1, n2] -> sum + n1 * n2
+      _ -> sum
+    end
+  end)
+```
