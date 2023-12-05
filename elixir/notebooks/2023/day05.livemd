@@ -1,0 +1,113 @@
+# 🎄 Year 2023 🔔 Day 05
+
+## Setup
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2023/day05.txt"
+
+{seeds, transformers} =
+  File.read!(filename)
+  |> String.split("\n\n", trim: true)
+  |> then(fn [seeds | transformers] ->
+    seeds = String.split(seeds, " ") |> Enum.drop(1) |> Enum.map(&String.to_integer/1)
+
+    transformers =
+      Enum.map(transformers, fn transformer ->
+        String.split(transformer, "\n", trim: true)
+        |> Enum.drop(1)
+        |> Enum.map(fn line ->
+          String.split(line, " ", trim: true)
+          |> Enum.map(&String.to_integer/1)
+          |> then(fn [to, from, size] -> {to, from, size} end)
+        end)
+      end)
+
+    {seeds, transformers}
+  end)
+```
+
+## Part 1
+
+```elixir
+transform_value = fn value, transformer ->
+  {to, from, _size} =
+    Enum.find(
+      transformer,
+      {value, value, 1},
+      fn {_to, from, size} -> value >= from && value <= from + size - 1 end
+    )
+
+  value - from + to
+end
+
+seeds
+|> Enum.map(fn seed ->
+  Enum.reduce(transformers, [seed], fn transformer, values = [e | _tail] ->
+    new_value = transform_value.(e, transformer)
+    [new_value | values]
+  end)
+  |> Enum.reverse()
+end)
+|> Enum.map(&List.last/1)
+|> Enum.min()
+```
+
+## Part 2
+
+```elixir
+defmodule Helper do
+  def transform_range(range, transformer)
+  # Ignore invalid ranges
+  # def transform_range({rs, re}, _) when rs > re, do: []
+  def transform_range(range = {rs, re}, []) when rs <= re, do: [range]
+
+  def transform_range(range = {rs, re}, [{to, from, size} | mappings]) when rs <= re do
+    cond do
+      # Range fits fully in transformer
+      rs >= from && re <= from + size - 1 ->
+        [{rs - from + to, re - from + to}]
+
+      # No overlap between ranges
+      re < from || rs > from + size - 1 ->
+        transform_range(range, mappings)
+
+      # There is overlap and non overlap
+      true ->
+        left_ranges =
+          if rs < from do
+            transform_range({rs, from - 1}, mappings)
+          else
+            []
+          end
+
+        included_range = {max(rs, from) - from + to, min(re, from + size - 1) - from + to}
+
+        right_ranges =
+          if re > from + size - 1 do
+            transform_range({from + size, re}, mappings)
+          else
+            []
+          end
+
+        Enum.concat([left_ranges, [included_range], right_ranges])
+    end
+  end
+end
+
+ranges =
+  seeds
+  |> Enum.chunk_every(2)
+  |> Enum.map(fn [rs, size] -> {rs, rs + size - 1} end)
+
+Enum.reduce(transformers, [ranges], fn transformer, accs = [prev_ranges | _tail] ->
+  new_ranges =
+    prev_ranges
+    |> Enum.flat_map(&Helper.transform_range(&1, transformer))
+
+  [new_ranges | accs]
+end)
+|> Enum.reverse()
+|> List.last()
+|> Enum.min_by(&elem(&1, 0))
+|> elem(0)
+```
