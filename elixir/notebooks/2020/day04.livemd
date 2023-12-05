@@ -1,0 +1,76 @@
+# 🎄 Year 2020 🔔 Day 04
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day04.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Stream.map(&String.trim(&1))
+  |> Stream.map(&String.split(&1))
+  |> Stream.chunk_by(fn e -> e == [] end)
+  |> Stream.take_every(2)
+  |> Stream.map(&Enum.flat_map(&1, fn e -> e end))
+  |> Stream.map(
+    &Enum.map(&1, fn field -> String.split(field, ":") |> then(fn [k, v] -> {k, v} end) end)
+  )
+  |> Stream.map(&Map.new/1)
+```
+
+## Shared code
+
+## Part One
+
+```elixir
+mandatory_keys = ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"]
+
+parsed_input_stream
+|> Enum.filter(fn passport ->
+  Enum.all?(mandatory_keys, fn key -> Map.has_key?(passport, key) end)
+end)
+|> Enum.count()
+```
+
+## Part two
+
+```elixir
+mandatory_keys = ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"]
+
+year_in_between = fn year, from, to ->
+  String.match?(year, ~r/\d{4}/) && String.to_integer(year) >= from &&
+    String.to_integer(year) <= to
+end
+
+parsed_input_stream
+|> Stream.filter(fn passport ->
+  Enum.all?(mandatory_keys, fn key -> Map.has_key?(passport, key) end)
+end)
+|> Stream.filter(fn %{"byr" => byr, "iyr" => iyr, "eyr" => eyr} ->
+  year_in_between.(byr, 1920, 2002) &&
+    year_in_between.(iyr, 2010, 2020) &&
+    year_in_between.(eyr, 2020, 2030)
+end)
+|> Stream.filter(fn %{"hgt" => hgt} ->
+  case hgt do
+    <<cm::bitstring-size(24)>> <> "cm" ->
+      String.to_integer(cm) >= 150 && String.to_integer(cm) <= 193
+
+    <<inches::bitstring-size(16)>> <> "in" ->
+      String.to_integer(inches) >= 59 && String.to_integer(inches) <= 76
+
+    _ ->
+      false
+  end
+end)
+|> Stream.filter(fn %{"hcl" => hcl} ->
+  String.match?(hcl, ~r/#[0-9a-f]{6}/)
+end)
+|> Stream.filter(fn %{"ecl" => ecl} ->
+  Enum.member?(["amb", "blu", "brn", "gry", "grn", "hzl", "oth"], ecl)
+end)
+|> Stream.filter(fn %{"pid" => pid} ->
+  String.match?(pid, ~r/[0-9]{9}/)
+end)
+|> Enum.count()
+```

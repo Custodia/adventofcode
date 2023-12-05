@@ -1,0 +1,43 @@
+# 🎄 Year 2020 🔔 Day 03
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day03.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Stream.map(&String.trim(&1))
+```
+
+## Shared code
+
+```elixir
+defmodule Helper do
+  def count_trees(lines, right, down) do
+    width = lines |> Enum.take(1) |> List.first() |> String.graphemes() |> Enum.count()
+
+    lines
+    |> Stream.take_every(down)
+    |> Stream.zip(Stream.iterate(0, fn acc -> rem(acc + right, width) end))
+    |> Stream.map(fn {line, n} -> line |> String.graphemes() |> Enum.at(n) end)
+    |> Enum.filter(fn char -> char == "#" end)
+    |> Enum.count()
+  end
+end
+```
+
+## Part One
+
+```elixir
+parsed_input_stream
+|> Helper.count_trees(3, 1)
+```
+
+## Part two
+
+```elixir
+[{1, 1}, {3, 1}, {5, 1}, {7, 1}, {1, 2}]
+|> Enum.map(fn {right, down} -> Helper.count_trees(parsed_input_stream, right, down) end)
+|> Enum.product()
+```

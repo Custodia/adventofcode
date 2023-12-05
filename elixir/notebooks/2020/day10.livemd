@@ -1,0 +1,50 @@
+# 🎄 Year 2020 🔔 Day 10
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day10.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.sort()
+  |> then(&Enum.concat([[0], &1, [List.last(&1) + 3]]))
+```
+
+## Part One
+
+```elixir
+parsed_input_stream
+|> Enum.chunk_every(2, 1, :discard)
+|> Enum.map(fn [a, b] -> b - a end)
+|> Enum.frequencies()
+|> then(fn %{1 => ones_count, 3 => threes_count} -> ones_count * threes_count end)
+```
+
+## Part two
+
+```elixir
+[head | tail] = parsed_input_stream
+
+group_permutation_counts = %{
+  1 => 1,
+  2 => 1,
+  3 => 2,
+  4 => 4,
+  5 => 7
+}
+
+Enum.reduce(tail, {[head], []}, fn e, {acc, result} ->
+  if List.first(acc) == e - 3 do
+    {[e], [acc | result]}
+  else
+    {[e | acc], result}
+  end
+end)
+|> then(fn {acc, result} -> [acc | result] end)
+|> Enum.map(&Enum.count/1)
+|> Enum.map(&Map.fetch!(group_permutation_counts, &1))
+|> Enum.product()
+```

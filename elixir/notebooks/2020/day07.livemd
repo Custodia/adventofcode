@@ -1,0 +1,93 @@
+# 🎄 Year 2020 🔔 Day 07
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day07.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(fn line ->
+    [l, r] = String.split(line, " contain ")
+    l = String.trim_trailing(l, "s")
+
+    r =
+      r
+      |> String.trim(".")
+      |> String.split(", ")
+      |> Enum.map(&String.trim(&1, "s"))
+      |> Enum.flat_map(fn e ->
+        case e do
+          <<count::bitstring-size(8)>> <> " " <> bag ->
+            [{bag, String.to_integer(count)}]
+
+          "no other bag" ->
+            []
+        end
+      end)
+
+    {l, r}
+  end)
+  |> Map.new()
+```
+
+## Shared code
+
+## Part One
+
+```elixir
+defmodule Helper do
+  def any_common?(l, r) do
+    Enum.any?(l, fn e -> Enum.any?(r, &(&1 == e)) end)
+  end
+
+  def recurse(bag_map, found_bags) do
+    %{true => bags_with_target_bag, false => bags_without_target_bag} =
+      bag_map
+      |> Enum.group_by(fn {key, bags} ->
+        any_common?(found_bags, bags)
+      end)
+      |> then(&Map.merge(%{true => []}, &1))
+
+    case Enum.map(bags_with_target_bag, &elem(&1, 0)) do
+      [] ->
+        found_bags
+
+      bags_with_target_bag ->
+        recurse(bags_without_target_bag, Enum.concat(bags_with_target_bag, found_bags))
+    end
+  end
+end
+
+bag_map =
+  parsed_input_stream
+  |> Enum.map(fn {key, bags} -> {key, Enum.map(bags, &elem(&1, 0))} end)
+  |> Map.new()
+
+target_bag = "shiny gold bag"
+
+Helper.recurse(bag_map, [target_bag])
+|> Enum.count()
+|> then(&(&1 - 1))
+```
+
+## Part two
+
+```elixir
+defmodule Helper do
+  def recurse(bags, bag) do
+    case Map.fetch!(bags, bag) do
+      [] ->
+        0
+
+      contained_bags ->
+        contained_bags
+        |> Enum.map(fn {bag, count} -> count + count * Helper.recurse(bags, bag) end)
+        |> Enum.sum()
+    end
+  end
+end
+
+Helper.recurse(parsed_input_stream, "shiny gold bag")
+```

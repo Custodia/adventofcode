@@ -1,0 +1,42 @@
+# 🎄 Year 2020 🔔 Day 05
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day05.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Stream.map(&String.trim/1)
+  |> Stream.map(&String.replace(&1, ["B", "R"], "1"))
+  |> Stream.map(&String.replace(&1, ["F", "L"], "0"))
+  |> Stream.map(&String.split_at(&1, 7))
+  |> Stream.map(fn {row, column} ->
+    {String.to_integer(row, 2), String.to_integer(column, 2)}
+  end)
+```
+
+## Shared code
+
+## Part One
+
+```elixir
+parsed_input_stream
+|> Enum.map(fn {row, column} -> row * 8 + column end)
+|> Enum.max()
+```
+
+## Part two
+
+```elixir
+parsed_input_stream
+|> Enum.map(fn {row, column} -> row * 8 + column end)
+|> Enum.sort()
+|> Enum.reduce_while(0, fn e, prev ->
+  if e - 2 == prev do
+    {:halt, prev + 1}
+  else
+    {:cont, e}
+  end
+end)
+```

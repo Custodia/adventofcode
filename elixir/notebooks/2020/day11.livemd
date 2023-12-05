@@ -1,0 +1,141 @@
+# 🎄 Year 2020 🔔 Day 11
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day11.txt"
+
+asdf =
+  """
+  L.LL.LL.LL
+  LLLLLLL.LL
+  L.L.L..L..
+  LLLL.LL.LL
+  L.LL.LL.LL
+  L.LLLLL.LL
+  ..L.L.....
+  LLLLLLLLLL
+  L.LLLLLL.L
+  L.LLLLL.LL
+  """
+  |> String.split("\n")
+
+graphemes =
+  File.stream!(filename)
+  # asdf
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(&String.graphemes/1)
+
+width = graphemes |> List.first() |> Enum.count()
+
+parsed_input_stream =
+  graphemes
+  |> Enum.with_index(fn line, y -> Enum.with_index(line, fn e, x -> {{x, y}, e} end) end)
+  |> Enum.concat()
+  |> Map.new()
+```
+
+## Part One
+
+```elixir
+defmodule Helper do
+  def get_adjacent(seats, {x, y}) do
+    [{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}]
+    |> Enum.map(fn {xd, yd} -> Map.get(seats, {x + xd, y + yd}, ".") end)
+  end
+
+  def get_new_seat_value(seats, {coords, current}) do
+    new_state =
+      case current do
+        "." ->
+          "."
+
+        "#" ->
+          count_adjacent_occupied =
+            get_adjacent(seats, coords) |> Enum.count_until(&(&1 == "#"), 4)
+
+          if count_adjacent_occupied >= 4, do: "L", else: "#"
+
+        "L" ->
+          all_adjacent_free = get_adjacent(seats, coords) |> Enum.all?(&(&1 != "#"))
+          if all_adjacent_free, do: "#", else: "L"
+      end
+
+    {coords, new_state}
+  end
+end
+
+Stream.repeatedly(fn -> nil end)
+|> Stream.scan(parsed_input_stream, fn nil, seats ->
+  seats
+  |> Enum.map(&Helper.get_new_seat_value(seats, &1))
+  |> Map.new()
+end)
+|> Stream.chunk_every(2)
+|> Enum.find_value(fn [a, b] -> if a == b, do: a, else: false end)
+|> Enum.count(fn {_coords, seat} -> seat == "#" end)
+```
+
+## Part two
+
+```elixir
+defmodule Helper do
+  def get_visible_coords(seats, {coords, "."}), do: {coords, {[], "."}}
+
+  def get_visible_coords(seats, {coords, current}) do
+    [{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}]
+    |> Enum.map(fn coord_delta -> get_visible_coord(seats, coords, coord_delta) end)
+    |> then(&{coords, {&1, current}})
+  end
+
+  defp get_visible_coord(seats, {x, y}, {xd, yd}) do
+    case Map.fetch(seats, {x + xd, y + yd}) do
+      {:ok, "#"} -> {x + xd, y + yd}
+      {:ok, "L"} -> {x + xd, y + yd}
+      {:ok, "."} -> get_visible_coord(seats, {x + xd, y + yd}, {xd, yd})
+      :error -> {x + xd, y + yd}
+    end
+  end
+
+  def get_new_seat_value(seats, {coords, {visible_coords, current}}) do
+    new_state =
+      case current do
+        "." ->
+          "."
+
+        "#" ->
+          count_adjacent_occupied =
+            visible_coords
+            |> Enum.map(&Map.get(seats, &1, {[], "."}))
+            |> Enum.count_until(fn {_, e} -> e == "#" end, 5)
+
+          if count_adjacent_occupied >= 5, do: "L", else: "#"
+
+        "L" ->
+          all_adjacent_free =
+            visible_coords
+            |> Enum.map(&Map.get(seats, &1, {[], "."}))
+            |> Enum.all?(fn {_, e} -> e != "#" end)
+
+          if all_adjacent_free, do: "#", else: "L"
+      end
+
+    {coords, {visible_coords, new_state}}
+  end
+end
+
+seats =
+  parsed_input_stream
+  |> Enum.map(&Helper.get_visible_coords(parsed_input_stream, &1))
+  |> Map.new()
+
+Stream.repeatedly(fn -> nil end)
+|> Stream.scan(seats, fn nil, seats ->
+  seats
+  |> Enum.map(&Helper.get_new_seat_value(seats, &1))
+  |> Map.new()
+end)
+|> Stream.chunk_every(2)
+|> Enum.find_value(fn [a, b] -> if a == b, do: a, else: false end)
+|> Enum.count(fn {_coords, {_visible_coords, seat}} -> seat == "#" end)
+```

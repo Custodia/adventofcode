@@ -1,0 +1,49 @@
+# 🎄 Year 2020 🔔 Day 09
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day09.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(&String.to_integer/1)
+```
+
+## Part One
+
+```elixir
+part_1_result =
+  parsed_input_stream
+  |> Enum.chunk_every(26, 1, :discard)
+  |> Enum.map(&Enum.split(&1, 25))
+  |> Enum.find(fn {preamble, [num]} ->
+    combinations = for x <- preamble, y <- preamble, x != y, do: x + y
+    !Enum.any?(combinations, &(&1 == num))
+  end)
+  |> then(fn {_preamble, [num]} -> num end)
+```
+
+## Part two
+
+```elixir
+Stream.iterate(0, &(&1 + 1))
+|> Stream.map(&Enum.drop(parsed_input_stream, &1))
+|> Enum.find_value(fn [first | rest] ->
+  {min, max, total} =
+    Enum.reduce_while(rest, {first, first, first}, fn num, {min_num, max_num, total} ->
+      total = num + total
+      min_num = min(num, min_num)
+      max_num = max(num, max_num)
+
+      if total >= part_1_result do
+        {:halt, {min_num, max_num, total}}
+      else
+        {:cont, {min_num, max_num, total}}
+      end
+    end)
+
+  if total == part_1_result, do: min + max, else: false
+end)
+```

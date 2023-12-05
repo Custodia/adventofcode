@@ -1,0 +1,41 @@
+# 🎄 Year 2020 🔔 Day 02
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day02.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Stream.map(&String.trim(&1))
+  |> Stream.map(&String.split(&1, " "))
+  |> Stream.map(fn [counts, <<char::bitstring-size(8)>> <> ":", password] ->
+    [from, to] = String.split(counts, "-")
+    {String.to_integer(from), String.to_integer(to), char, password}
+  end)
+```
+
+## Part One
+
+```elixir
+parsed_input_stream
+|> Stream.filter(fn {from, to, char, password} ->
+  password
+  |> String.graphemes()
+  |> Enum.count(fn e -> e == char end)
+  |> then(&(&1 >= from && &1 <= to))
+end)
+|> Enum.count()
+```
+
+## Part two
+
+```elixir
+parsed_input_stream
+|> Enum.filter(fn {first, last, char, password} ->
+  chars = password |> String.graphemes()
+
+  Enum.at(chars, first - 1) == char != (Enum.at(chars, last - 1) == char)
+end)
+|> Enum.count()
+```

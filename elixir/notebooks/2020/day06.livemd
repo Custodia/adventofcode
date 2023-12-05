@@ -1,0 +1,48 @@
+# 🎄 Year 2020 🔔 Day 06
+
+## Parse input
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2020/day06.txt"
+
+parsed_input_stream =
+  File.stream!(filename)
+  |> Enum.map(&String.trim/1)
+  |> Enum.chunk_by(fn e -> e == "" end)
+  |> Enum.take_every(2)
+```
+
+## Shared code
+
+## Part One
+
+```elixir
+parsed_input_stream
+|> Enum.map(&Enum.join/1)
+|> Enum.map(&String.graphemes/1)
+|> Enum.map(&Enum.uniq/1)
+|> Enum.map(&Enum.count/1)
+|> Enum.sum()
+```
+
+## Part two
+
+```elixir
+parsed_input_stream
+|> Enum.map(fn answers ->
+  char_counts =
+    answers
+    |> Enum.join()
+    |> String.graphemes()
+    |> Enum.reduce(%{}, fn char, counts ->
+      Map.update(counts, char, 1, &(&1 + 1))
+    end)
+    |> dbg()
+
+  {Enum.count(answers), char_counts}
+end)
+|> Enum.map(fn {respondent_count, char_counts} ->
+  Map.values(char_counts) |> Enum.filter(&(&1 == respondent_count)) |> Enum.count()
+end)
+|> Enum.sum()
+```
