@@ -1,0 +1,66 @@
+# 🎄 Year 2023 🔔 Day 06
+
+## Setup
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2023/day06.txt"
+
+races =
+  File.read!(filename)
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    String.split(line, " ", trim: true)
+    |> Enum.drop(1)
+    |> Enum.map(&String.to_integer/1)
+  end)
+  |> Enum.zip()
+
+races_part_two =
+  File.read!(filename)
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    String.split(line, " ", trim: true)
+    |> Enum.drop(1)
+    |> Enum.join("")
+    |> String.to_integer()
+  end)
+  |> List.to_tuple()
+```
+
+## Part 1
+
+```elixir
+races
+|> Enum.map(fn {time, distance} ->
+  1..(time - 1)
+  |> Enum.drop_while(fn n -> n * (time - n) <= distance end)
+  |> Enum.take_while(fn n -> n * (time - n) > distance end)
+  |> Enum.count()
+end)
+|> Enum.product()
+```
+
+## Part 2
+
+```elixir
+defmodule Helper do
+  def binary_search(min, max, {time, distance}) do
+    current = div(max - min, 2) + min
+    prev = current - 1
+
+    current_result = current * (time - current) > distance
+    prev_result = prev * (time - prev) > distance
+
+    case {prev_result, current_result} do
+      {false, true} -> current
+      {true, true} -> binary_search(min, current, {time, distance})
+      {false, false} -> binary_search(current, max, {time, distance})
+    end
+  end
+end
+
+{time, distance} = races_part_two
+
+Helper.binary_search(1, time - 1, {time, distance})
+|> then(fn result -> Enum.count(result..(time - result)) end)
+```
