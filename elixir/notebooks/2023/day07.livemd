@@ -1,0 +1,104 @@
+# 🎄 Year 2023 🔔 Day 07
+
+## Setup
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2023/day07.txt"
+
+hands =
+  File.read!(filename)
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, " ", trim: true))
+  |> Enum.map(fn [hand, bid] -> {hand, String.to_integer(bid)} end)
+```
+
+## Part 1
+
+```elixir
+defmodule Helper do
+  def score_card(card) do
+    case card do
+      "A" -> 14
+      "K" -> 13
+      "Q" -> 12
+      "J" -> 11
+      "T" -> 10
+      _ -> String.to_integer(card)
+    end
+  end
+
+  def score_hand(hand) do
+    cards = String.graphemes(hand) |> Enum.map(&score_card/1)
+
+    sorted_cards =
+      Enum.sort_by(cards, fn card -> Enum.count(cards, &(&1 == card)) * 20 + card end, :desc)
+
+    hand_value =
+      case sorted_cards do
+        [a, a, a, a, a] -> 6
+        [a, a, a, a, _] -> 5
+        [a, a, a, b, b] -> 4
+        [a, a, a, _, _] -> 3
+        [a, a, b, b, _] -> 2
+        [a, a, _, _, _] -> 1
+        [_, _, _, _, _] -> 0
+      end
+
+    List.to_tuple([hand_value | cards])
+  end
+end
+
+Enum.map(hands, fn {hand, bid} -> {hand, bid, _score = Helper.score_hand(hand)} end)
+|> Enum.sort_by(&elem(&1, 2), :asc)
+|> Enum.with_index(fn {_hand, bid, _score}, rank -> bid * (rank + 1) end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Helper2 do
+  def score_card(card) do
+    case card do
+      "A" -> 14
+      "K" -> 13
+      "Q" -> 12
+      "J" -> 1
+      "T" -> 10
+      _ -> String.to_integer(card)
+    end
+  end
+
+  def score_hand("JJJJJ"), do: {6, 1, 1, 1, 1, 1}
+
+  def score_hand(hand) do
+    cards = String.graphemes(hand) |> Enum.map(&score_card/1)
+
+    sorted_cards =
+      cards
+      |> Enum.filter(&(&1 != 1))
+      |> Enum.sort_by(fn card -> Enum.count(cards, &(&1 == card)) * 20 + card end, :desc)
+      |> then(fn hand = [head | _tail] ->
+        Enum.concat(List.duplicate(head, 5 - Enum.count(hand)), hand)
+      end)
+
+    hand_value =
+      case sorted_cards do
+        [a, a, a, a, a] -> 6
+        [a, a, a, a, _] -> 5
+        [a, a, a, b, b] -> 4
+        [a, a, a, _, _] -> 3
+        [a, a, b, b, _] -> 2
+        [a, a, _, _, _] -> 1
+        [_, _, _, _, _] -> 0
+      end
+
+    List.to_tuple([hand_value | cards])
+  end
+end
+
+Enum.map(hands, fn {hand, bid} -> {hand, bid, _score = Helper2.score_hand(hand)} end)
+|> Enum.sort_by(&elem(&1, 2), :asc)
+|> Enum.with_index(fn {_hand, bid, _score}, rank -> bid * (rank + 1) end)
+|> Enum.sum()
+```
