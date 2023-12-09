@@ -1,0 +1,49 @@
+# 🎄 Year 2023 🔔 Day 09
+
+## Setup
+
+```elixir
+sequences =
+  File.read!("#{__DIR__}/../../../inputs/2023/day09.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.split(" ")
+    |> Enum.map(&String.to_integer/1)
+  end)
+```
+
+## Part 1
+
+```elixir
+sequences
+|> Enum.map(fn sequence ->
+  Stream.iterate(sequence, fn step ->
+    step
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [a, b] -> b - a end)
+  end)
+  |> Enum.take_while(&Enum.any?(&1, fn e -> e !== 0 end))
+  |> Enum.map(&List.last/1)
+  |> Enum.sum()
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+sequences
+|> Enum.map(fn sequence ->
+  Stream.iterate(sequence, fn step ->
+    step
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [a, b] -> b - a end)
+  end)
+  |> Enum.take_while(&Enum.any?(&1, fn e -> e !== 0 end))
+  |> Enum.map(&List.first/1)
+  |> Enum.reverse()
+  |> Enum.reduce(0, fn e, acc -> e - acc end)
+end)
+|> Enum.sum()
+```
