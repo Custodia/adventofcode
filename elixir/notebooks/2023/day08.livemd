@@ -1,0 +1,61 @@
+# 🎄 Year 2023 🔔 Day 08
+
+## Setup
+
+```elixir
+filename = "#{__DIR__}/../../../inputs/2023/day08.txt"
+
+[instructions, maps] = File.read!(filename) |> String.split("\n\n")
+instructions = String.split(instructions, "", trim: true)
+
+maps =
+  maps
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn
+    <<location::bitstring-size(24)>> <>
+        " = (" <>
+        <<left::bitstring-size(24)>> <>
+        ", " <> <<right::bitstring-size(24)>> <> ")" ->
+      {location, {left, right}}
+  end)
+  |> Map.new()
+```
+
+## Part 1
+
+```elixir
+Stream.cycle(instructions)
+|> Stream.scan("AAA", fn
+  "L", acc ->
+    Map.fetch!(maps, acc) |> elem(0)
+
+  "R", acc ->
+    Map.fetch!(maps, acc) |> elem(1)
+end)
+|> Enum.find_index(&(&1 == "ZZZ"))
+|> then(&(&1 + 1))
+```
+
+## Part 2
+
+```elixir
+starters = maps |> Enum.map(&elem(&1, 0)) |> Enum.filter(&String.ends_with?(&1, "A"))
+
+intervals =
+  Enum.map(starters, fn starter ->
+    Stream.cycle(instructions)
+    |> Stream.scan(starter, fn
+      "L", acc ->
+        Map.fetch!(maps, acc) |> elem(0)
+
+      "R", acc ->
+        Map.fetch!(maps, acc) |> elem(1)
+    end)
+    |> Enum.find_index(&String.ends_with?(&1, "Z"))
+    |> then(&(&1 + 1))
+  end)
+
+Enum.reduce(intervals, fn a, b ->
+  div(a * b, Integer.gcd(a, b))
+end)
+```
