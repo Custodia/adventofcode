@@ -1,0 +1,128 @@
+# 🎄 Year 2023 🔔 Day 10
+
+## Setup
+
+```elixir
+map =
+  File.read!("#{__DIR__}/../../../inputs/2023/day10.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.split("", trim: true)
+  end)
+  |> Enum.with_index(fn line, y ->
+    Enum.with_index(line, fn pipe, x -> {{x, y}, pipe} end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+```
+
+## Part 1
+
+```elixir
+defmodule Helper do
+  def get_next_location(map, prev_coords, {cur_x, cur_y}, pipe) do
+    {coords1, coords2} =
+      case pipe do
+        "|" -> {{cur_x, cur_y - 1}, {cur_x, cur_y + 1}}
+        "-" -> {{cur_x - 1, cur_y}, {cur_x + 1, cur_y}}
+        "L" -> {{cur_x, cur_y - 1}, {cur_x + 1, cur_y}}
+        "J" -> {{cur_x, cur_y - 1}, {cur_x - 1, cur_y}}
+        "7" -> {{cur_x - 1, cur_y}, {cur_x, cur_y + 1}}
+        "F" -> {{cur_x + 1, cur_y}, {cur_x, cur_y + 1}}
+      end
+
+    if coords1 != prev_coords do
+      {coords1, Map.fetch!(map, coords1)}
+    else
+      {coords2, Map.fetch!(map, coords2)}
+    end
+  end
+end
+
+[{start_coords, "S"}] = Enum.filter(map, fn {{_x, _y}, pipe} -> pipe == "S" end)
+
+map
+|> Map.update!(start_coords, fn _ -> "J" end)
+
+locations =
+  Stream.unfold({{nil, nil}, {start_coords, "J"}}, fn acc ->
+    {{prev_coords, _prev_pipe}, {cur_coords, cur_pipe}} = acc
+
+    if cur_coords == start_coords && prev_coords != nil do
+      nil
+    else
+      next_location = Helper.get_next_location(map, prev_coords, cur_coords, cur_pipe)
+      cur_location = {cur_coords, cur_pipe}
+      {cur_location, {cur_location, next_location}}
+    end
+  end)
+
+locations
+|> Enum.count()
+|> then(&div(&1, 2))
+```
+
+## Part 2
+
+```elixir
+require Integer
+
+locations_map = Map.new(locations)
+
+map =
+  map
+  |> Enum.map(fn {coords, pipe} ->
+    pipe = if pipe == "S", do: "J", else: pipe
+    if Map.has_key?(locations_map, coords), do: {coords, pipe}, else: {coords, "."}
+  end)
+
+map
+|> Enum.group_by(fn {{_x, y}, _pipe} -> y end)
+|> Enum.map(fn {_y, coords} ->
+  coords
+  |> Enum.sort_by(fn {{x, y}, _pipe} -> {y, x} end, :asc)
+  |> Enum.map(&elem(&1, 1))
+end)
+|> Enum.map(fn chars ->
+  Enum.reduce(
+    chars,
+    {_prev_bend = nil, _vertical_count = 0, _inner_count = 0},
+    fn char, {prev_bend, vertical_count, inner_count} ->
+      case {prev_bend, char} do
+        {nil, "."} when Integer.is_odd(vertical_count) ->
+          {prev_bend, vertical_count, inner_count + 1}
+
+        {nil, "."} ->
+          {prev_bend, vertical_count, inner_count}
+
+        {nil, "|"} ->
+          {prev_bend, vertical_count + 1, inner_count}
+
+        {nil, "F"} ->
+          {"F", vertical_count, inner_count}
+
+        {nil, "L"} ->
+          {"L", vertical_count, inner_count}
+
+        {"F", "J"} ->
+          {nil, vertical_count + 1, inner_count}
+
+        {"F", "7"} ->
+          {nil, vertical_count, inner_count}
+
+        {"L", "J"} ->
+          {nil, vertical_count, inner_count}
+
+        {"L", "7"} ->
+          {nil, vertical_count + 1, inner_count}
+
+        {last_bend, "-"} ->
+          {last_bend, vertical_count, inner_count}
+      end
+    end
+  )
+  |> elem(2)
+end)
+|> Enum.sum()
+```
