@@ -1,0 +1,121 @@
+# 🎄 Year 2023 🔔 Day 11
+
+## Setup
+
+```elixir
+map =
+  File.read!("#{__DIR__}/../../../inputs/2023/day11.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.flat_map(fn line ->
+    if String.match?(line, ~r/^\.+$/) do
+      [line, line]
+    else
+      [line]
+    end
+  end)
+  |> Enum.map(&String.split(&1, "", trim: true))
+  |> Enum.zip()
+  |> Enum.flat_map(fn line ->
+    line = Tuple.to_list(line) |> Enum.join("")
+
+    if String.match?(line, ~r/^\.+$/) do
+      [line, line]
+    else
+      [line]
+    end
+  end)
+  |> Enum.with_index(fn line, x ->
+    line
+    |> String.split("", trim: true)
+    |> Enum.with_index(fn char, y ->
+      {{x, y}, char}
+    end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+```
+
+## Part 1
+
+```elixir
+galaxies = Enum.filter(map, fn {_coords, char} -> char == "#" end) |> Map.new()
+
+galaxies
+|> Enum.flat_map_reduce(galaxies, fn {coords, "#"}, galaxies ->
+  {"#", other_galaxies} = Map.pop!(galaxies, coords)
+
+  pairings =
+    other_galaxies
+    |> Enum.map(fn {other_coords, "#"} -> {coords, other_coords} end)
+
+  {pairings, other_galaxies}
+end)
+|> then(fn {pairings, %{}} -> pairings end)
+|> Enum.map(fn {{x1, y1}, {x2, y2}} ->
+  abs(x1 - x2) + abs(y1 - y2)
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+file = File.read!("#{__DIR__}/../../../inputs/2023/day11.txt")
+
+empty_ys =
+  file
+  |> String.split("\n")
+  |> Enum.with_index()
+  |> Enum.filter(fn {line, _y} ->
+    String.match?(line, ~r/^\.+$/)
+  end)
+  |> Enum.map(&elem(&1, 1))
+
+empty_xs =
+  file
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, "", trim: true))
+  |> Enum.zip()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.map(&Enum.join(&1, ""))
+  |> Enum.with_index()
+  |> Enum.filter(fn {line, _y} ->
+    String.match?(line, ~r/^\.+$/)
+  end)
+  |> Enum.map(&elem(&1, 1))
+
+galaxies =
+  file
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.split("", trim: true)
+  end)
+  |> Enum.with_index(fn line, y ->
+    line
+    |> Enum.with_index(fn char, x ->
+      {{x, y}, char}
+    end)
+  end)
+  |> Enum.concat()
+  |> Enum.filter(fn {_coords, char} -> char == "#" end)
+  |> Map.new()
+
+galaxies
+|> Enum.flat_map_reduce(galaxies, fn {coords, "#"}, galaxies ->
+  {"#", other_galaxies} = Map.pop!(galaxies, coords)
+
+  pairings =
+    other_galaxies
+    |> Enum.map(fn {other_coords, "#"} -> {coords, other_coords} end)
+
+  {pairings, other_galaxies}
+end)
+|> then(fn {pairings, %{}} -> pairings end)
+|> Enum.map(fn {{x1, y1}, {x2, y2}} ->
+  abs(x1 - x2) + abs(y1 - y2) +
+    Enum.count(x1..x2, &Enum.member?(empty_xs, &1)) * 999_999 +
+    Enum.count(y1..y2, &Enum.member?(empty_ys, &1)) * 999_999
+end)
+|> Enum.sum()
+```
