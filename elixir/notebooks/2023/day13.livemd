@@ -1,0 +1,145 @@
+# 🎄 Year 2023 🔔 Day 13
+
+## Setup
+
+```elixir
+patterns =
+  File.read!("#{__DIR__}/../../../inputs/2023/day13.txt")
+  |> String.split("\n\n", trim: true)
+```
+
+## Part 1
+
+```elixir
+defmodule HelperPart1 do
+  def get_score(pattern) do
+    vertical_score =
+      pattern
+      |> get_vertical_patterns()
+      |> Enum.with_index(1)
+      |> Enum.find_value(0, fn {pairings, index} ->
+        all_match? = Enum.all?(pairings, fn {left, right} -> left == right end)
+        if all_match?, do: index, else: nil
+      end)
+
+    horizontal_score =
+      pattern
+      |> get_horizontal_patterns()
+      |> Enum.with_index(fn e, i -> {e, (i + 1) * 100} end)
+      |> Enum.find_value(0, fn {pairings, index} ->
+        all_match? = Enum.all?(pairings, fn {left, right} -> left == right end)
+        if all_match?, do: index, else: nil
+      end)
+
+    vertical_score + horizontal_score
+  end
+
+  def get_horizontal_patterns(pattern) do
+    horizontal_lines = pattern |> String.split("\n", trim: true)
+
+    1..(Enum.count(horizontal_lines) - 1)
+    |> Enum.map(fn split_at ->
+      {left, right} = Enum.split(horizontal_lines, split_at)
+      Enum.zip(Enum.reverse(left), right)
+    end)
+  end
+
+  def get_vertical_patterns(pattern) do
+    pattern
+    |> transpose_string()
+    |> get_horizontal_patterns()
+  end
+
+  defp transpose_string(pattern) do
+    pattern
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.graphemes/1)
+    |> Enum.zip_with(&Function.identity/1)
+    |> Enum.map(&Enum.join(&1, ""))
+    |> Enum.join("\n")
+  end
+end
+```
+
+```elixir
+patterns
+|> Enum.map(&HelperPart1.get_score/1)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule HelperPart2 do
+  def get_score(pattern) do
+    vertical_score =
+      pattern
+      |> get_vertical_patterns()
+      |> Enum.with_index(1)
+      |> Enum.find_value(0, fn {pairings, index} ->
+        difference_count =
+          pairings
+          |> Enum.count_until(fn {left, right} -> left != right end, 2)
+
+        if difference_count == 1, do: index, else: nil
+      end)
+
+    horizontal_score =
+      pattern
+      |> get_horizontal_patterns()
+      |> Enum.with_index(fn e, i -> {e, (i + 1) * 100} end)
+      |> Enum.find_value(0, fn {pairings, index} ->
+        difference_count =
+          pairings
+          |> Enum.count_until(fn {left, right} -> left != right end, 2)
+
+        if difference_count == 1, do: index, else: nil
+      end)
+
+    vertical_score + horizontal_score
+  end
+
+  def get_horizontal_patterns(pattern) do
+    horizontal_lines =
+      pattern
+      |> String.split("\n", trim: true)
+      |> Enum.map(&String.split(&1, "", trim: true))
+
+    1..(Enum.count(horizontal_lines) - 1)
+    |> Enum.map(fn split_at ->
+      {left, right} = Enum.split(horizontal_lines, split_at)
+
+      Enum.zip_reduce(
+        [Enum.reverse(left), right],
+        {[], []},
+        fn [left, right], {left_acc, right_acc} ->
+          {[left | left_acc], [right | right_acc]}
+        end
+      )
+      |> then(fn {left, right} -> [Enum.concat(left), Enum.concat(right)] end)
+      |> Enum.zip()
+    end)
+  end
+
+  def get_vertical_patterns(pattern) do
+    pattern
+    |> transpose_string()
+    |> get_horizontal_patterns()
+  end
+
+  defp transpose_string(pattern) do
+    pattern
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.graphemes/1)
+    |> Enum.zip_with(&Function.identity/1)
+    |> Enum.map(&Enum.join(&1, ""))
+    |> Enum.join("\n")
+  end
+end
+```
+
+```elixir
+patterns
+|> Enum.map(&HelperPart2.get_score/1)
+|> Enum.sum()
+```
