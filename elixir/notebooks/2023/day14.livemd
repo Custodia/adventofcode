@@ -1,0 +1,131 @@
+# 🎄 Year 2023 🔔 Day 14
+
+## Setup
+
+```elixir
+map =
+  File.read!("#{__DIR__}/../../../inputs/2023/day14.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, "", trim: true))
+  |> Enum.with_index(fn line, y ->
+    Enum.with_index(line, fn char, x ->
+      {{x, y}, char}
+    end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+
+{{max_x, max_y}, _} = Enum.max_by(map, fn {{x, y}, _} -> x + y end)
+```
+
+```elixir
+defmodule Helper do
+  def sum_coords({x1, y1}, {x2, y2}), do: {x1 + x2, y1 + y2}
+
+  # north, then west, then south, then east
+  def move_north(map, max_x, max_y) do
+    coords = for y <- 0..max_y, x <- 0..max_x, do: {x, y}
+    move_coord = {0, -1}
+    move_stones(map, coords, move_coord)
+  end
+
+  def move_west(map, max_x, max_y) do
+    coords = for x <- 0..max_x, y <- 0..max_y, do: {x, y}
+    move_coord = {-1, 0}
+    move_stones(map, coords, move_coord)
+  end
+
+  def move_south(map, max_x, max_y) do
+    coords = for y <- max_y..0, x <- 0..max_x, do: {x, y}
+    move_coord = {0, 1}
+    move_stones(map, coords, move_coord)
+  end
+
+  def move_east(map, max_x, max_y) do
+    coords = for x <- max_x..0, y <- 0..max_y, do: {x, y}
+    move_coord = {1, 0}
+    move_stones(map, coords, move_coord)
+  end
+
+  defp move_stones(map, coords, move_coord) do
+    coords
+    |> Enum.filter(fn coord -> Map.fetch!(map, coord) == "O" end)
+    |> Enum.reduce(map, fn tm_coord, map ->
+      new_coord =
+        Stream.unfold(tm_coord, fn coords ->
+          cond do
+            tm_coord == coords ->
+              {coords, sum_coords(coords, move_coord)}
+
+            Map.get(map, coords) == "." ->
+              {coords, sum_coords(coords, move_coord)}
+
+            true ->
+              nil
+          end
+        end)
+        |> Enum.to_list()
+        |> List.last(tm_coord)
+
+      map
+      |> Map.update!(tm_coord, fn _ -> "." end)
+      |> Map.update!(new_coord, fn _ -> "O" end)
+    end)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+import Helper
+
+map
+|> move_north(max_x, max_y)
+|> Enum.filter(fn {_coord, char} -> char == "O" end)
+|> Enum.map(fn {{_x, y}, _} ->
+  max_y + 1 - y
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+import Helper
+
+{map, stored_maps, first_index, second_index} =
+  Stream.iterate(1, &(&1 + 1))
+  |> Enum.reduce_while({%{}, map}, fn i, {stored_maps, map} ->
+    new_map =
+      case rem(i, 4) do
+        1 -> move_north(map, max_x, max_y)
+        2 -> move_west(map, max_x, max_y)
+        3 -> move_south(map, max_x, max_y)
+        0 -> move_east(map, max_x, max_y)
+      end
+
+    if Map.has_key?(stored_maps, new_map) do
+      prev_index = Map.fetch!(stored_maps, new_map)
+      {:halt, {new_map, stored_maps, prev_index, i}}
+    else
+      new_stored_maps = Map.put_new(stored_maps, new_map, i)
+      {:cont, {new_stored_maps, new_map}}
+    end
+  end)
+
+loop_length = second_index - first_index
+steps_after_loop_starts = rem(1_000_000_000 - first_index, loop_length - 1)
+
+final_map =
+  Enum.find_value(stored_maps, fn {map, i} ->
+    if i == first_index + steps_after_loop_starts, do: map, else: nil
+  end)
+
+final_map
+|> Enum.filter(fn {_coord, char} -> char == "O" end)
+|> Enum.map(fn {{_x, y}, _} ->
+  max_y + 1 - y
+end)
+|> Enum.sum()
+```
