@@ -1,0 +1,68 @@
+# 🎄 Year 2023 🔔 Day 15
+
+## Setup
+
+```elixir
+codes =
+  File.read!("#{__DIR__}/../../../inputs/2023/day15.txt")
+  |> String.trim()
+  |> String.split(",", trim: true)
+```
+
+## Part 1
+
+```elixir
+codes
+|> Task.async_stream(fn code ->
+  String.to_charlist(code)
+  |> Enum.reduce(0, fn e, acc -> rem((e + acc) * 17, 256) end)
+end)
+|> Enum.map(fn {:ok, result} -> result end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+codes
+|> Task.async_stream(
+  fn code ->
+    {label, command} =
+      case Regex.split(~r/([-=])/, code, trim: true, include_captures: true) do
+        [label, "=", digit] ->
+          {label, {:add, String.to_integer(digit)}}
+
+        [label, "-"] ->
+          {label, :remove}
+      end
+
+    hash =
+      String.to_charlist(label)
+      |> Enum.reduce(0, fn e, acc -> rem((e + acc) * 17, 256) end)
+
+    {hash, label, command}
+  end,
+  ordered: true
+)
+|> Enum.map(fn {:ok, result} -> result end)
+|> Enum.reduce(%{}, fn {hash, label, command}, map ->
+  lenses = Map.get(map, hash, [])
+
+  new_lenses =
+    case command do
+      :remove ->
+        Enum.filter(lenses, fn {l, _d} -> l != label end)
+
+      {:add, digit} ->
+        List.keystore(lenses, label, 0, {label, digit})
+    end
+
+  Map.put(map, hash, new_lenses)
+end)
+|> Enum.map(fn {hash, lenses} ->
+  lenses
+  |> Enum.with_index(fn {_label, digit}, i -> (hash + 1) * digit * (i + 1) end)
+  |> Enum.sum()
+end)
+|> Enum.sum()
+```
