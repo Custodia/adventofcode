@@ -1,0 +1,102 @@
+# 🎄 Year 2023 🔔 Day 16
+
+## Setup
+
+```elixir
+map =
+  File.read!("#{__DIR__}/../../../inputs/2023/day16.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, "", trim: true))
+  |> Enum.with_index(fn line, y ->
+    line
+    |> Enum.with_index(fn char, x ->
+      {{x, y}, char}
+    end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+
+{{max_x, max_y}, _} = Enum.max_by(map, fn {{x, y}, _} -> x + y end)
+```
+
+## Part 1
+
+```elixir
+Stream.iterate([{{-1, 0}, {1, 0}}], fn es ->
+  Enum.flat_map(es, fn {{cx, cy}, {dx, dy}} ->
+    new_coords = {cx + dx, cy + dy}
+    tile = Map.get(map, new_coords)
+
+    case tile do
+      nil -> []
+      "." -> [{new_coords, {dx, dy}}]
+      "-" when dy == 0 -> [{new_coords, {dx, dy}}]
+      "-" -> [{new_coords, {1, 0}}, {new_coords, {-1, 0}}]
+      "|" when dx == 0 -> [{new_coords, {dx, dy}}]
+      "|" -> [{new_coords, {0, 1}}, {new_coords, {0, -1}}]
+      "\\" -> [{new_coords, {dy, dx}}]
+      "/" -> [{new_coords, {-dy, -dx}}]
+    end
+  end)
+  |> Enum.filter(fn {coords, dir} ->
+    if Process.get({coords, dir}) == nil do
+      Process.put({coords, dir}, true)
+      true
+    else
+      false
+    end
+  end)
+end)
+|> Enum.take_while(fn es -> es != [] end)
+|> Enum.concat()
+|> Enum.map(&elem(&1, 0))
+|> MapSet.new()
+|> Enum.count()
+|> then(&(&1 - 1))
+```
+
+## Part 2
+
+```elixir
+Enum.concat([
+  for(x <- [-1], y <- 0..max_y, dir <- [{1, 0}], do: {{x, y}, dir}),
+  for(x <- [max_x + 1], y <- 0..max_y, dir <- [{-1, 0}], do: {{x, y}, dir}),
+  for(x <- 0..max_x, y <- [-1], dir <- [{0, 1}], do: {{x, y}, dir}),
+  for(x <- 0..max_x, y <- [max_y + 1], dir <- [{0, -1}], do: {{x, y}, dir})
+])
+|> Task.async_stream(fn {start_coord, start_dir} ->
+  Stream.iterate([{start_coord, start_dir}], fn es ->
+    Enum.flat_map(es, fn {{cx, cy}, {dx, dy}} ->
+      new_coords = {cx + dx, cy + dy}
+      tile = Map.get(map, new_coords)
+
+      case tile do
+        nil -> []
+        "." -> [{new_coords, {dx, dy}}]
+        "-" when dy == 0 -> [{new_coords, {dx, dy}}]
+        "-" -> [{new_coords, {1, 0}}, {new_coords, {-1, 0}}]
+        "|" when dx == 0 -> [{new_coords, {dx, dy}}]
+        "|" -> [{new_coords, {0, 1}}, {new_coords, {0, -1}}]
+        "\\" -> [{new_coords, {dy, dx}}]
+        "/" -> [{new_coords, {-dy, -dx}}]
+      end
+    end)
+    |> Enum.filter(fn {coords, dir} ->
+      if Process.get({coords, dir}) == nil do
+        Process.put({coords, dir}, true)
+        true
+      else
+        false
+      end
+    end)
+  end)
+  |> Enum.take_while(fn es -> es != [] end)
+  |> Enum.concat()
+  |> Enum.map(&elem(&1, 0))
+  |> MapSet.new()
+  |> Enum.count()
+  |> then(&(&1 - 1))
+end)
+|> Enum.max()
+|> elem(1)
+```
