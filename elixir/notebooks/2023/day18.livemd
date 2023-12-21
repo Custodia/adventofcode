@@ -1,0 +1,84 @@
+# 🎄 Year 2023 🔔 Day 18
+
+## Setup
+
+```elixir
+lines =
+  File.read!("#{__DIR__}/../../../inputs/2023/day18.txt")
+  |> String.split("\n", trim: true)
+```
+
+## Part 1
+
+```elixir
+corners =
+  lines
+  |> Enum.map(fn line ->
+    [dir, count, _hex] = String.split(line, " ", trim: true)
+    count = String.to_integer(count)
+
+    case dir do
+      "U" -> {0, count}
+      "D" -> {0, -count}
+      "L" -> {-count, 0}
+      "R" -> {count, 0}
+    end
+  end)
+  |> then(&[{0, 0} | &1])
+  |> Enum.scan({0, 0}, fn {ax, ay}, {bx, by} -> {ax + bx, ay + by} end)
+
+shoelace_result =
+  corners
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.reduce(0, fn [{ax, ay}, {bx, by}], acc ->
+    acc + ax * by - ay * bx
+  end)
+  |> then(&abs(div(&1, 2)))
+
+perimeter =
+  corners
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.reduce(0, fn [{ax, ay}, {bx, by}], acc ->
+    acc + abs(ax - bx) + abs(ay - by)
+  end)
+
+pick_result = shoelace_result + div(perimeter, 2) + 1
+```
+
+## Part 2
+
+```elixir
+corners =
+  lines
+  |> Enum.map(fn line ->
+    [_dir, _count, hex] = String.split(line, " ", trim: true)
+    "(#" <> <<count::binary-size(5), dir::binary-size(1)>> <> ")" = hex
+    count = String.to_integer(count, 16)
+
+    case dir do
+      "0" -> {count, 0}
+      "1" -> {0, count}
+      "2" -> {-count, 0}
+      "3" -> {0, -count}
+    end
+  end)
+  |> then(&[{0, 0} | &1])
+  |> Enum.scan({0, 0}, fn {ax, ay}, {bx, by} -> {ax + bx, ay + by} end)
+
+shoelace_result =
+  corners
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.reduce(0, fn [{ax, ay}, {bx, by}], acc ->
+    acc + ax * by - ay * bx
+  end)
+  |> then(&abs(div(&1, 2)))
+
+perimeter =
+  corners
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.reduce(0, fn [{ax, ay}, {bx, by}], acc ->
+    acc + abs(ax - bx) + abs(ay - by)
+  end)
+
+pick_result = shoelace_result + div(perimeter, 2) + 1
+```
