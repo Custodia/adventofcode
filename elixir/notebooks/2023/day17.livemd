@@ -1,0 +1,145 @@
+# 🎄 Year 2023 🔔 Day 17
+
+## Setup
+
+```elixir
+map =
+  File.read!("#{__DIR__}/../../../inputs/2023/day17.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, "", trim: true))
+  |> Enum.with_index(fn line, y ->
+    line
+    |> Enum.with_index(fn char, x ->
+      {{x, y}, String.to_integer(char)}
+    end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+
+{{max_x, max_y}, _} = Enum.max_by(map, fn {{x, y}, _} -> x + y end)
+
+{map, max_x, max_y}
+```
+
+```elixir
+defmodule Djikstra do
+  def run(graph, target, unvisited) do
+    {key, cur_distance} = Enum.min_by(unvisited, &elem(&1, 1))
+
+    vertices = Map.fetch!(graph, key)
+
+    unvisited =
+      unvisited
+      |> Map.delete(key)
+      |> then(
+        &Enum.reduce(vertices, &1, fn {key, add_distance}, unvisited ->
+          case Map.fetch(unvisited, key) do
+            :error ->
+              unvisited
+
+            {:ok, dist} ->
+              if dist > cur_distance + add_distance do
+                Map.update!(unvisited, key, fn _ -> cur_distance + add_distance end)
+              else
+                unvisited
+              end
+          end
+        end)
+      )
+
+    {key_coord, _key_dir} = key
+
+    if key_coord == target do
+      cur_distance
+    else
+      run(graph, target, unvisited)
+    end
+  end
+end
+```
+
+## Part 1
+
+```elixir
+graph =
+  map
+  |> Enum.flat_map(fn {{x, y}, _} ->
+    [{{x, y}, {0, 1}}, {{x, y}, {0, -1}}, {{x, y}, {-1, 0}}, {{x, y}, {1, 0}}]
+  end)
+  |> Enum.map(fn key = {{cx, cy}, {dx, dy}} ->
+    values =
+      for steps <- 1..3 do
+        {cx + dx * steps, cy + dy * steps}
+      end
+      |> Enum.filter(fn {cx, cy} ->
+        cx >= 0 && cx <= max_x && cy >= 0 && cy <= max_y
+      end)
+      |> Enum.map_reduce(0, fn coords, acc ->
+        new_acc = acc + Map.fetch!(map, coords)
+        {{coords, new_acc}, new_acc}
+      end)
+      |> elem(0)
+      |> Enum.flat_map(fn {coords, dist} ->
+        [{{coords, {dy, dx}}, dist}, {{coords, {-dy, -dx}}, dist}]
+      end)
+
+    {key, values}
+  end)
+  |> Enum.filter(fn {_k, vs} -> Enum.count(vs) != 0 end)
+  |> Map.new()
+
+unvisited =
+  graph
+  |> Enum.map(&elem(&1, 0))
+  |> Enum.map(fn
+    k = {{0, 0}, _} -> {k, 0}
+    k -> {k, 1_000_000}
+  end)
+  |> Map.new()
+
+Djikstra.run(graph, {max_x, max_y}, unvisited)
+|> then(&{&1, &1 == 907})
+```
+
+## Part 2
+
+```elixir
+graph =
+  map
+  |> Enum.flat_map(fn {{x, y}, _} ->
+    [{{x, y}, {0, 1}}, {{x, y}, {0, -1}}, {{x, y}, {-1, 0}}, {{x, y}, {1, 0}}]
+  end)
+  |> Enum.map(fn key = {{cx, cy}, {dx, dy}} ->
+    values =
+      for steps <- 1..10 do
+        {cx + dx * steps, cy + dy * steps}
+      end
+      |> Enum.filter(fn {cx, cy} ->
+        cx >= 0 && cx <= max_x && cy >= 0 && cy <= max_y
+      end)
+      |> Enum.map_reduce(0, fn coords, acc ->
+        new_acc = acc + Map.fetch!(map, coords)
+        {{coords, new_acc}, new_acc}
+      end)
+      |> elem(0)
+      |> Enum.drop(3)
+      |> Enum.flat_map(fn {coords, dist} ->
+        [{{coords, {dy, dx}}, dist}, {{coords, {-dy, -dx}}, dist}]
+      end)
+
+    {key, values}
+  end)
+  |> Enum.filter(fn {_k, vs} -> Enum.count(vs) != 0 end)
+  |> Map.new()
+
+unvisited =
+  graph
+  |> Enum.map(&elem(&1, 0))
+  |> Enum.map(fn
+    k = {{0, 0}, _} -> {k, 0}
+    k -> {k, 1_000_000}
+  end)
+  |> Map.new()
+
+Djikstra.run(graph, {max_x, max_y}, unvisited)
+```
