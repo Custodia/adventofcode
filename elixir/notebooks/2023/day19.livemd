@@ -1,0 +1,178 @@
+# 🎄 Year 2023 🔔 Day 19
+
+## Setup
+
+```elixir
+defmodule Helpers do
+  @rule_regex ~r/(?<attribute>\w)(?<symbol>[<>])(?<number>\d+):(?<destination>\w+)/
+
+  def parse_rule(rule_string) do
+    %{
+      "attribute" => attribute,
+      "symbol" => symbol,
+      "number" => number,
+      "destination" => destination
+    } = Regex.named_captures(@rule_regex, rule_string)
+
+    {attribute, symbol, String.to_integer(number), destination}
+  end
+end
+
+[workflows, parts] =
+  File.read!("#{__DIR__}/../../../inputs/2023/day19.txt")
+  |> String.split("\n\n", trim: true)
+
+workflows =
+  workflows
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    %{
+      "name" => name,
+      "rules" => rules,
+      "final" => final_destination
+    } = Regex.named_captures(~r/^(?<name>\w+)\{(?<rules>.+),(?<final>\w+)\}$/, line)
+
+    rules = String.split(rules, ",") |> Enum.map(&Helpers.parse_rule/1)
+    {name, {rules, final_destination}}
+  end)
+  |> Map.new()
+
+parts =
+  parts
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    Regex.named_captures(~r/^\{x=(?<x>\d+),m=(?<m>\d+),a=(?<a>\d+),s=(?<s>\d+)\}$/, line)
+    |> Enum.map(fn {k, v} -> {k, String.to_integer(v)} end)
+    |> Map.new()
+  end)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def execute_workflow(part, workflows, current_workflow \\ "in")
+  def execute_workflow(part, _workflows, "A"), do: {part, "A"}
+  def execute_workflow(part, _workflows, "R"), do: {part, "R"}
+
+  def execute_workflow(part, workflows, current_workflow) do
+    {steps, default_destination} = Map.fetch!(workflows, current_workflow)
+
+    next_workflow =
+      Enum.find_value(
+        steps,
+        default_destination,
+        fn
+          {attribute, ">", number, destination} ->
+            if Map.fetch!(part, attribute) > number, do: destination, else: nil
+
+          {attribute, "<", number, destination} ->
+            if Map.fetch!(part, attribute) < number, do: destination, else: nil
+        end
+      )
+
+    execute_workflow(part, workflows, next_workflow)
+  end
+end
+
+Enum.map(parts, &Part1.execute_workflow(&1, workflows))
+|> Enum.filter(fn {_part, result} -> result == "A" end)
+|> Enum.flat_map(fn {part, "A"} -> Enum.map(part, &elem(&1, 1)) end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  defp split_parts(parts, {attribute, ">", number, destination}) do
+    first..last = Map.fetch!(parts, attribute)
+
+    cond do
+      # Fully includes
+      first > number ->
+        {{parts, destination}, nil}
+
+      # Split
+      first <= number && last > number ->
+        included = Map.update!(parts, attribute, fn _ -> (number + 1)..last end)
+        excluded = Map.update!(parts, attribute, fn _ -> first..number end)
+        {{included, destination}, excluded}
+
+      # Fully excludes
+      last <= number ->
+        {nil, parts}
+    end
+  end
+
+  defp split_parts(parts, {attribute, "<", number, destination}) do
+    first..last = Map.fetch!(parts, attribute)
+
+    cond do
+      # Fully includes
+      last < number ->
+        {{parts, destination}, nil}
+
+      # Split
+      first < number && last >= number ->
+        included = Map.update!(parts, attribute, fn _ -> first..(number - 1) end)
+        excluded = Map.update!(parts, attribute, fn _ -> number..last end)
+        {{included, destination}, excluded}
+
+      # Fully excludes
+      first >= number ->
+        {nil, parts}
+    end
+  end
+
+  defp execute_steps(parts, steps, default_destination)
+  defp execute_steps(parts, [], default_destination), do: [{parts, default_destination}]
+
+  defp execute_steps(parts, [step | steps], default_destination) do
+    case split_parts(parts, step) do
+      {result, nil} ->
+        [result]
+
+      {nil, remaining_parts} ->
+        execute_steps(remaining_parts, steps, default_destination)
+
+      {result, remaining_parts} ->
+        [result | execute_steps(remaining_parts, steps, default_destination)]
+    end
+  end
+
+  def execute_workflow(parts_with_workflow, workflows)
+  def execute_workflow({parts, "A"}, _workflows), do: [{parts, "A"}]
+  def execute_workflow({parts, "R"}, _workflows), do: [{parts, "R"}]
+
+  def execute_workflow({parts, current_workflow}, workflows) do
+    {steps, default_destination} = Map.fetch!(workflows, current_workflow)
+
+    execute_steps(parts, steps, default_destination)
+  end
+end
+
+[
+  {%{
+     "x" => 1..4000,
+     "m" => 1..4000,
+     "a" => 1..4000,
+     "s" => 1..4000
+   }, "in"}
+]
+|> Stream.iterate(fn elements ->
+  Enum.flat_map(elements, &Part2.execute_workflow(&1, workflows))
+end)
+|> Enum.find(fn elements ->
+  Enum.all?(elements, fn {_parts, current_workflow} ->
+    current_workflow == "A" || current_workflow == "R"
+  end)
+end)
+|> Enum.filter(fn {_parts, current_workflow} -> current_workflow == "A" end)
+|> Enum.map(fn {parts, "A"} ->
+  parts
+  |> Enum.map(fn {_attribute, range} -> Enum.count(range) end)
+  |> Enum.product()
+end)
+|> Enum.sum()
+```
