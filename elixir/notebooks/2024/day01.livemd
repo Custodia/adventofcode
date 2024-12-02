@@ -1,0 +1,37 @@
+# 🎄 Year 2024 🔔 Day 01
+
+## Setup
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2024/day01.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn <<a::binary-size(5), "   ", b::binary-size(5)>> ->
+    [String.to_integer(a), String.to_integer(b)]
+  end)
+  |> List.zip()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.map(&Enum.sort/1)
+```
+
+## Part 1
+
+```elixir
+input
+|> List.zip()
+|> Enum.map(fn {a, b} -> max(a, b) - min(a, b) end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+input
+|> then(fn [a, b] ->
+  Enum.map(a, fn ae ->
+    matching_count = Enum.filter(b, fn ab -> ae == ab end) |> Enum.count()
+    ae * matching_count
+  end)
+end)
+|> Enum.sum()
+```
