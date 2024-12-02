@@ -1,0 +1,54 @@
+# 🎄 Year 2024 🔔 Day 02
+
+## Setup
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2024/day02.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.split(" ", trim: true)
+    |> Enum.map(&String.to_integer/1)
+  end)
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.map(fn line ->
+  steps =
+    line
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [a, b] -> a - b end)
+
+  all_asc = Enum.all?(steps, fn step -> step > 0 end)
+  all_desc = Enum.all?(steps, fn step -> step < 0 end)
+  any_safe_step = Enum.all?(steps, fn step -> abs(step) >= 1 && abs(step) <= 3 end)
+  (all_asc || all_desc) && any_safe_step
+end)
+|> Enum.count(fn e -> e end)
+```
+
+## Part 2
+
+```elixir
+input
+|> Enum.map(fn line ->
+  -1..4
+  |> Enum.map(&List.delete_at(line, &1))
+  |> Enum.any?(fn line ->
+    steps =
+      line
+      |> Enum.chunk_every(2, 1, :discard)
+      |> Enum.map(fn [a, b] -> a - b end)
+
+    all_asc = Enum.all?(steps, fn step -> step > 0 end)
+    all_desc = Enum.all?(steps, fn step -> step < 0 end)
+    any_safe_step = Enum.all?(steps, fn step -> abs(step) >= 1 && abs(step) <= 3 end)
+    (all_asc || all_desc) && any_safe_step
+  end)
+end)
+|> Enum.count(fn e -> e end)
+```
