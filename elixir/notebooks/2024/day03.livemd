@@ -1,0 +1,61 @@
+# 🎄 Year 2024 🔔 Day 03
+
+## Setup
+
+```elixir
+input = File.read!("#{__DIR__}/../../../inputs/2024/day03.txt")
+```
+
+## Part 1
+
+```elixir
+regex = ~r/mul\(\d{1,3},\d{1,3}\)/
+
+input
+|> then(&Regex.scan(regex, &1))
+|> Enum.map(fn [line] ->
+  line
+  |> then(fn "mul" <> rest -> rest end)
+  |> String.trim("(")
+  |> String.trim(")")
+  |> String.split(",")
+  |> then(fn [a, b] -> String.to_integer(a) * String.to_integer(b) end)
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+regex = ~r/(do\(\)|don't\(\)|mul\(\d{1,3},\d{1,3}\))/
+
+input
+|> then(&Regex.scan(regex, &1, capture: :first))
+|> Enum.reduce(
+  %{should_count: true, count: 0},
+  fn [e], %{should_count: should_count, count: count} ->
+    cond do
+      e == "do()" ->
+        %{should_count: true, count: count}
+
+      e == "don't()" ->
+        %{should_count: false, count: count}
+
+      should_count == false ->
+        %{should_count: should_count, count: count}
+
+      true ->
+        e_count =
+          e
+          |> then(fn "mul" <> rest -> rest end)
+          |> String.trim("(")
+          |> String.trim(")")
+          |> String.split(",")
+          |> then(fn [a, b] -> String.to_integer(a) * String.to_integer(b) end)
+
+        %{should_count: should_count, count: count + e_count}
+    end
+  end
+)
+|> Map.fetch!(:count)
+```
