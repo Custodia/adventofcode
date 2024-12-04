@@ -1,0 +1,101 @@
+# 🎄 Year 2016 🔔 Day 02
+
+## Setup
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2016/day02.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+
+dir_coords = %{
+  "U" => {0, -1},
+  "D" => {0, 1},
+  "L" => {-1, 0},
+  "R" => {1, 0}
+}
+```
+
+## Part 1
+
+```elixir
+keypad = %{
+  {0, 0} => "1",
+  {1, 0} => "2",
+  {2, 0} => "3",
+  {0, 1} => "4",
+  {1, 1} => "5",
+  {2, 1} => "6",
+  {0, 2} => "7",
+  {1, 2} => "8",
+  {2, 2} => "9"
+}
+
+input
+|> Enum.map_reduce({1, 1}, fn steps, start_coords ->
+  end_coords =
+    Enum.reduce(steps, start_coords, fn dir, {x, y} ->
+      {mov_x, mov_y} = Map.fetch!(dir_coords, dir)
+
+      new_x = x + mov_x
+      new_y = y + mov_y
+
+      if new_x < 0 || new_x > 2 || new_y < 0 || new_y > 2 do
+        {x, y}
+      else
+        {new_x, new_y}
+      end
+    end)
+
+  {end_coords, end_coords}
+end)
+|> elem(0)
+|> Enum.map(&Map.fetch!(keypad, &1))
+|> Enum.join()
+```
+
+## Part 2
+
+```elixir
+keypad = %{
+  {2, 0} => "1",
+  {1, 1} => "2",
+  {2, 1} => "3",
+  {3, 1} => "4",
+  {0, 2} => "5",
+  {1, 2} => "6",
+  {2, 2} => "7",
+  {3, 2} => "8",
+  {4, 2} => "9",
+  {1, 3} => "A",
+  {2, 3} => "B",
+  {3, 3} => "C",
+  {2, 4} => "D"
+}
+
+input
+|> Enum.map_reduce({1, 1}, fn steps, start_coords ->
+  end_coords =
+    Enum.reduce(steps, start_coords, fn dir, {x, y} ->
+      {mov_x, mov_y} = Map.fetch!(dir_coords, dir)
+
+      new_x = x + mov_x
+      new_y = y + mov_y
+
+      if (new_x == 0 && new_y == 2) ||
+           (new_x == 1 && (new_y >= 1 && new_y <= 3)) ||
+           (new_x == 2 && (new_y >= 0 && new_y <= 4)) ||
+           (new_x == 3 && (new_y >= 1 && new_y <= 3)) ||
+           (new_x == 4 && new_y == 2) do
+        {new_x, new_y}
+      else
+        {x, y}
+      end
+    end)
+
+  {end_coords, end_coords}
+end)
+|> elem(0)
+|> Enum.map(&Map.fetch!(keypad, &1))
+|> Enum.join()
+```
