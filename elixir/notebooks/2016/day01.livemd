@@ -1,0 +1,55 @@
+# 🎄 Year 2016 🔔 Day 01
+
+## Setup
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2016/day01.txt")
+  |> String.trim()
+  |> String.split(", ")
+  |> Enum.map(fn <<turn_dir::binary-size(1)>> <> steps -> {turn_dir, String.to_integer(steps)} end)
+```
+
+## Part 1
+
+```elixir
+dirs = [{0, 1}, {1, 0}, {0, -1}, {-1, 0}]
+
+input
+|> Enum.reduce({0, {0, 0}}, fn {turn_dir, steps}, {dir_i, {cur_x, cur_y}} ->
+  dir_i = if turn_dir == "R", do: dir_i + 1, else: dir_i - 1
+  {move_x, move_y} = Enum.at(dirs, Integer.mod(dir_i, 4))
+
+  {dir_i, {cur_x + move_x * steps, cur_y + move_y * steps}}
+end)
+|> then(fn {_, {x, y}} -> abs(x) + abs(y) end)
+```
+
+## Part 2
+
+```elixir
+dirs = [{0, 1}, {1, 0}, {0, -1}, {-1, 0}]
+
+input
+|> Enum.flat_map_reduce({0, {0, 0}}, fn {turn_dir, steps}, {dir_i, {cur_x, cur_y}} ->
+  dir_i = if turn_dir == "R", do: dir_i + 1, else: dir_i - 1
+  {move_x, move_y} = Enum.at(dirs, Integer.mod(dir_i, 4))
+
+  new_coords = {cur_x + move_x * steps, cur_y + move_y * steps}
+  acc = {dir_i, new_coords}
+
+  coords_stepped_on =
+    for step_n <- 1..steps, do: {cur_x + move_x * step_n, cur_y + move_y * step_n}
+
+  {coords_stepped_on, acc}
+end)
+|> then(&elem(&1, 0))
+|> Enum.reduce_while(MapSet.new(), fn coord, visited_coords ->
+  if MapSet.member?(visited_coords, coord) do
+    {:halt, coord}
+  else
+    {:cont, MapSet.put(visited_coords, coord)}
+  end
+end)
+|> then(fn {x, y} -> abs(x) + abs(y) end)
+```
