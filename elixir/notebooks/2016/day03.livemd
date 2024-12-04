@@ -1,0 +1,35 @@
+# 🎄 Year 2016 🔔 Day 03
+
+## Setup
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2016/day03.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, "  ", trim: true))
+  |> Enum.map(&Enum.map(&1, fn e -> String.to_integer(String.trim(e)) end))
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.filter(fn [a, b, c] ->
+  a + b > c && a + c > b && b + c > a
+end)
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+input
+|> List.zip()
+|> Enum.map(&Tuple.to_list/1)
+|> Enum.concat()
+|> Enum.chunk_every(3)
+|> Enum.filter(fn [a, b, c] ->
+  a + b > c && a + c > b && b + c > a
+end)
+|> Enum.count()
+```
