@@ -1,0 +1,94 @@
+# 🎄 Year 2024 🔔 Day 04
+
+## Setup
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2024/day04.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+
+input_map =
+  input
+  |> Enum.with_index(fn row, y ->
+    Enum.with_index(row, fn e, x ->
+      {{x, y}, e}
+    end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+
+max_y = Enum.count(input) - 1
+max_x = Enum.at(input, 0) |> Enum.count() |> then(&(&1 - 1))
+
+{max_x, max_y}
+```
+
+## Part 1
+
+```elixir
+input = input
+transposed = List.zip(input) |> Enum.map(&Tuple.to_list/1)
+
+top_left_diagonal =
+  for end_x <- 0..max_x do
+    for x <- 0..end_x, y = end_x - x, do: {x, y}
+  end
+
+bottom_right_diagonal =
+  for start_x <- 1..max_x do
+    for x <- start_x..max_x, y = max_y + start_x - x, do: {x, y}
+  end
+
+top_right_diagonal =
+  for start_x <- 0..max_x do
+    for x <- start_x..max_x, y = x - start_x, do: {x, y}
+  end
+
+bottom_left_diagonal =
+  for end_x <- 0..(max_x - 1) do
+    for x <- 0..end_x, y = max_y - end_x + x, do: {x, y}
+  end
+
+diagonals =
+  Enum.concat([
+    top_left_diagonal,
+    bottom_right_diagonal,
+    top_right_diagonal,
+    bottom_left_diagonal
+  ])
+  |> Enum.map(fn line ->
+    Enum.map(line, &Map.fetch!(input_map, &1))
+  end)
+
+Enum.concat([
+  input,
+  transposed,
+  diagonals
+])
+|> Enum.filter(&(Enum.count(&1) >= 4))
+|> Enum.flat_map(&[&1, Enum.reverse(&1)])
+|> Enum.map(&Enum.join/1)
+|> Enum.map(fn line ->
+  line |> String.split("XMAS") |> Enum.count() |> then(&(&1 - 1))
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+a_coords = input_map |> Enum.filter(fn {_, e} -> e == "A" end) |> Enum.map(&elem(&1, 0))
+
+a_coords
+|> Enum.filter(fn {x, y} ->
+  a1 = {x - 1, y - 1} |> then(&Map.get(input_map, &1))
+  a2 = {x + 1, y + 1} |> then(&Map.get(input_map, &1))
+  b2 = {x + 1, y - 1} |> then(&Map.get(input_map, &1))
+  b1 = {x - 1, y + 1} |> then(&Map.get(input_map, &1))
+  a_matches = "#{a1}A#{a2}" == "MAS" || "#{a2}A#{a1}" == "MAS"
+  b_matches = "#{b1}A#{b2}" == "MAS" || "#{b2}A#{b1}" == "MAS"
+  a_matches && b_matches
+end)
+|> Enum.count()
+```
