@@ -1,0 +1,55 @@
+# 🎄 Year 2024 🔔 Day 05
+
+## Setup
+
+```elixir
+[rules, instructions] =
+  File.read!("#{__DIR__}/../../../inputs/2024/day05.txt")
+  |> String.split("\n\n", trim: true)
+
+rules =
+  String.split(rules, "\n", trim: true)
+  |> Enum.map(&String.split(&1, "|", trim: true))
+  |> Enum.map(fn [a, b] -> [String.to_integer(a), String.to_integer(b)] end)
+  |> MapSet.new()
+
+instructions =
+  String.split(instructions, "\n", trim: true)
+  |> Enum.map(&String.split(&1, ",", trim: true))
+  |> Enum.map(&Enum.map(&1, fn e -> String.to_integer(e) end))
+```
+
+## Part 1
+
+```elixir
+instructions
+|> Enum.filter(fn instruction_set ->
+  instruction_set
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.all?(&MapSet.member?(rules, &1))
+end)
+|> Enum.map(fn instructions ->
+  index = div(Enum.count(instructions), 2) + rem(Enum.count(instructions), 2) - 1
+  Enum.at(instructions, index)
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+instructions
+|> Enum.filter(fn instruction_set ->
+  instruction_set
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.any?(fn rule -> !MapSet.member?(rules, rule) end)
+end)
+|> Enum.map(fn instruction_set ->
+  Enum.sort(instruction_set, fn a, b -> MapSet.member?(rules, [a, b]) end)
+end)
+|> Enum.map(fn instructions ->
+  index = div(Enum.count(instructions), 2) + rem(Enum.count(instructions), 2) - 1
+  Enum.at(instructions, index)
+end)
+|> Enum.sum()
+```
