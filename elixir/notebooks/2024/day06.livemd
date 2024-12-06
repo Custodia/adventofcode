@@ -1,0 +1,148 @@
+# 🎄 Year 2024 🔔 Day 06
+
+```elixir
+Mix.install([{:flow, "~> 1.0"}])
+```
+
+## Setup
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2024/day06.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+
+starting_map =
+  input
+  |> Enum.with_index(fn line, y ->
+    Enum.with_index(line, fn e, x -> {{x, y}, e} end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+
+max_y = Enum.count(input) - 1
+max_x = Enum.count(Enum.at(input, 0)) - 1
+
+{guard_starting_loc, _} = Enum.find(starting_map, fn {_, e} -> e == "^" end)
+
+right_turn_map = %{
+  {0, -1} => {1, 0},
+  {1, 0} => {0, 1},
+  {0, 1} => {-1, 0},
+  {-1, 0} => {0, -1}
+}
+
+dir_to_char = %{
+  {0, -1} => "^",
+  {1, 0} => ">",
+  {0, 1} => "v",
+  {-1, 0} => "<"
+}
+
+{guard_starting_loc, max_x, max_y}
+```
+
+## Part 1
+
+```elixir
+Stream.iterate({guard_starting_loc, {0, -1}, starting_map}, fn {guard_coords = {gx, gy},
+                                                                dir = {dx, dy}, map} ->
+  next_coords = {gx + dx, gy + dy}
+  new_map = Map.put(map, guard_coords, "v")
+
+  case Map.fetch(map, next_coords) do
+    {:ok, "#"} ->
+      new_dir = Map.fetch!(right_turn_map, dir)
+      {guard_coords, new_dir, new_map}
+
+    {:ok, _} ->
+      {next_coords, dir, new_map}
+
+    :error ->
+      {next_coords, dir, new_map}
+  end
+end)
+|> Enum.find(fn {{gx, gy}, _, _} -> gx < 0 || gy < 0 || gx > max_x || gy > max_y end)
+|> then(&elem(&1, 2))
+|> Enum.count(fn {_, e} -> e == "v" end)
+```
+
+## Part 2
+
+```elixir
+Stream.iterate(
+  {guard_starting_loc, {0, -1}, starting_map},
+  fn {guard_coords = {gx, gy}, dir = {dx, dy}, map} ->
+    next_coords = {gx + dx, gy + dy}
+    dir_char = Map.fetch!(dir_to_char, dir)
+    new_map = Map.put(map, guard_coords, dir_char)
+
+    case Map.fetch(map, next_coords) do
+      {:ok, "#"} ->
+        new_dir = Map.fetch!(right_turn_map, dir)
+        {guard_coords, new_dir, map}
+
+      {:ok, _} ->
+        {next_coords, dir, new_map}
+
+      :error ->
+        {next_coords, dir, new_map}
+    end
+  end
+)
+|> Enum.take_while(fn {{gx, gy}, _, _} -> gx >= 0 && gy >= 0 && gx <= max_x && gy <= max_y end)
+|> Enum.filter(fn {{gx, gy}, {dx, dy}, map} ->
+  next_coords = {gx + dx, gy + dy}
+
+  case Map.fetch(map, next_coords) do
+    {:ok, "#"} ->
+      false
+
+    {:ok, _} ->
+      true
+
+    :error ->
+      false
+  end
+end)
+|> Enum.uniq_by(fn {{gx, gy}, {dx, dy}, _} ->
+  {gx + dx, gy + dy}
+end)
+|> Flow.from_enumerable(max_demand: 10)
+|> Flow.map(fn {guard_coords = {gx, gy}, dir = {dx, dy}, map} ->
+  next_coords = {gx + dx, gy + dy}
+  new_map = Map.update!(map, next_coords, fn _ -> "#" end)
+
+  {guard_coords, dir, new_map}
+end)
+|> Flow.filter(fn {guard_coords, dir, map} ->
+  Stream.repeatedly(fn -> nil end)
+  |> Enum.reduce_while(
+    {guard_coords, dir, map},
+    fn nil, {guard_coords = {gx, gy}, dir = {dx, dy}, map} ->
+      next_coords = {gx + dx, gy + dy}
+
+      case Map.fetch(map, next_coords) do
+        {:ok, "#"} ->
+          new_dir = Map.fetch!(right_turn_map, dir)
+          {:cont, {guard_coords, new_dir, map}}
+
+        {:ok, _} ->
+          dir_char = Map.fetch!(dir_to_char, dir)
+          cur_char = Map.fetch!(map, guard_coords)
+
+          if dir_char == cur_char && guard_coords != guard_starting_loc do
+            {:halt, true}
+          else
+            new_map = Map.put(map, guard_coords, dir_char)
+            {:cont, {next_coords, dir, new_map}}
+          end
+
+        :error ->
+          {:halt, false}
+      end
+    end
+  )
+end)
+|> Enum.count()
+```
