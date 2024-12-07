@@ -1,0 +1,65 @@
+# 🎄 Year 2024 🔔 Day 07
+
+```elixir
+Mix.install([{:flow, "~> 1.0"}])
+```
+
+## Setup
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2024/day07.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    [result, numbers] = String.split(line, ":", trim: true)
+
+    result = String.to_integer(result)
+    numbers = String.split(numbers, " ", trim: true) |> Enum.map(&String.to_integer/1)
+
+    {result, numbers}
+  end)
+```
+
+## Part 1
+
+```elixir
+defmodule Helper do
+  def check_result({result, numbers}), do: check_result(result, numbers)
+  def check_result(result, [head]) when result == head, do: true
+  def check_result(_result, [_number]), do: false
+  def check_result(result, [head | _tail]) when head > result, do: false
+
+  def check_result(result, [h1, h2 | tail]) do
+    check_result(result, [h1 * h2 | tail]) or check_result(result, [h1 + h2 | tail])
+  end
+end
+
+input
+|> Enum.filter(&Helper.check_result/1)
+|> Enum.map(&elem(&1, 0))
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Helper2 do
+  def check_result({result, numbers}), do: check_result(result, numbers)
+  def check_result(result, [head]) when result == head, do: true
+  def check_result(_result, [_number]), do: false
+  def check_result(result, [head | _tail]) when head > result, do: false
+
+  def check_result(result, [h1, h2 | tail]) do
+    check_result(result, [h1 * h2 | tail]) or
+      check_result(result, [h1 + h2 | tail]) or
+      check_result(result, [concat_numbers(h1, h2) | tail])
+  end
+
+  defp concat_numbers(a, b), do: String.to_integer("#{a}#{b}")
+end
+
+input
+|> Enum.filter(&Helper2.check_result/1)
+|> Enum.map(&elem(&1, 0))
+|> Enum.sum()
+```
