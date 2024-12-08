@@ -1,0 +1,114 @@
+# 🎄 Year 2024 🔔 Day 08
+
+## Setup
+
+```elixir
+input_string =
+  File.read!("#{__DIR__}/../../../inputs/2024/day08.txt")
+
+input =
+  input_string
+  |> String.split("\n", trim: true)
+  |> Enum.with_index(fn line, y ->
+    line
+    |> String.graphemes()
+    |> Enum.with_index(fn e, x ->
+      {{x, y}, e}
+    end)
+  end)
+  |> Enum.concat()
+  |> Enum.filter(fn {_, e} -> e != "." end)
+  |> Enum.filter(fn {_, e} -> e != "#" end)
+  |> Enum.group_by(&elem(&1, 1), &elem(&1, 0))
+
+max_x =
+  input_string
+  |> String.split("\n", trim: true)
+  |> Enum.at(0)
+  |> String.length()
+  |> then(&(&1 - 1))
+
+max_y =
+  input_string
+  |> String.split("\n", trim: true)
+  |> Enum.count()
+  |> then(&(&1 - 1))
+
+{max_x, max_y}
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.flat_map(fn {_, coords} ->
+  coords
+  |> then(fn list ->
+    0..(Enum.count(list) - 1)
+    |> Enum.flat_map_reduce(list, fn _, [head | tail] ->
+      {Enum.map(tail, fn e -> {head, e} end), tail}
+    end)
+    |> elem(0)
+  end)
+end)
+|> Enum.flat_map(fn {{x1, y1}, {x2, y2}} ->
+  xd = abs(x1 - x2)
+  yd = abs(y1 - y2)
+
+  [
+    {
+      if(x1 < x2, do: x1 - xd, else: x1 + xd),
+      if(y1 < y2, do: y1 - yd, else: y1 + yd)
+    },
+    {
+      if(x2 < x1, do: x2 - xd, else: x2 + xd),
+      if(y2 < y1, do: y2 - yd, else: y2 + yd)
+    }
+  ]
+end)
+|> Enum.filter(fn {x, y} ->
+  x >= 0 && x <= max_x && y >= 0 && y <= max_y
+end)
+|> Enum.uniq()
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+input
+|> Enum.flat_map(fn {_, coords} ->
+  coords
+  |> then(fn list ->
+    0..(Enum.count(list) - 1)
+    |> Enum.flat_map_reduce(list, fn _, [head | tail] ->
+      {Enum.map(tail, fn e -> {head, e} end), tail}
+    end)
+    |> elem(0)
+  end)
+end)
+|> Enum.flat_map(fn {{x1, y1}, {x2, y2}} ->
+  xd = abs(x1 - x2)
+  yd = abs(y1 - y2)
+  max_iterations = if xd <= yd, do: div(max_x, xd), else: div(max_y, yd)
+
+  0..max_iterations
+  |> Enum.flat_map(fn i ->
+    [
+      {
+        if(x1 < x2, do: x1 - xd * i, else: x1 + xd * i),
+        if(y1 < y2, do: y1 - yd * i, else: y1 + yd * i)
+      },
+      {
+        if(x2 < x1, do: x2 - xd * i, else: x2 + xd * i),
+        if(y2 < y1, do: y2 - yd * i, else: y2 + yd * i)
+      }
+    ]
+  end)
+end)
+|> Enum.filter(fn {x, y} ->
+  x >= 0 && x <= max_x && y >= 0 && y <= max_y
+end)
+|> Enum.uniq()
+|> Enum.count()
+```
