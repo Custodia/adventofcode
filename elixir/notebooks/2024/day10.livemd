@@ -1,0 +1,111 @@
+# 🎄 Year 2024 🔔 Day 10
+
+## Setup
+
+```elixir
+input_map =
+  File.read!("#{__DIR__}/../../../inputs/2024/day10.txt")
+  # """
+  # 89010123
+  # 78121874
+  # 87430965
+  # 96549874
+  # 45678903
+  # 32019012
+  # 01329801
+  # 10456732
+  # """
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.graphemes()
+    |> Enum.map(fn e -> String.to_integer(e) end)
+  end)
+  |> Enum.with_index(fn line, y ->
+    Enum.with_index(line, fn e, x -> {{x, y}, e} end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+
+{{max_x, max_y}, _} = Enum.max_by(input_map, fn {coords, _} -> coords end)
+{max_x, max_y}
+```
+
+## Part 1
+
+```elixir
+zeros = Enum.filter(input_map, fn {_, e} -> e == 0 end)
+
+zeros
+|> Enum.map(fn start_coord ->
+  1..9
+  |> Enum.reduce([start_coord], fn i, coords ->
+    Enum.flat_map(coords, fn {{x, y}, _} ->
+      [
+        {x + 1, y},
+        {x - 1, y},
+        {x, y + 1},
+        {x, y - 1}
+      ]
+    end)
+    |> Enum.map(fn coord = {x, y} ->
+      if x < 0 || y < 0 || x > max_x || y > max_y do
+        {{x, y}, -1}
+      else
+        e = Map.fetch!(input_map, coord)
+        {{x, y}, e}
+      end
+    end)
+    |> Enum.filter(fn {_, e} -> e == i end)
+    |> Enum.uniq()
+  end)
+  |> Enum.count()
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+scores =
+  Enum.filter(input_map, fn {_, e} -> e == 9 end)
+  |> Enum.map(fn {coord, 9} -> {coord, 1} end)
+  |> Map.new()
+
+scores =
+  8..0
+  |> Enum.reduce(scores, fn i, scores ->
+    new_scores =
+      Enum.filter(input_map, fn {_, e} -> e == i end)
+      |> Enum.map(fn {{x, y}, _} ->
+        score =
+          [
+            {x + 1, y},
+            {x - 1, y},
+            {x, y + 1},
+            {x, y - 1}
+          ]
+          |> Enum.map(fn coord = {x, y} ->
+            if x < 0 || y < 0 || x > max_x || y > max_y do
+              {{x, y}, -1}
+            else
+              e = Map.fetch!(input_map, coord)
+              {{x, y}, e}
+            end
+          end)
+          |> Enum.filter(fn {_, e} -> e == i + 1 end)
+          |> Enum.map(fn {coord, _} -> Map.fetch!(scores, coord) end)
+          |> Enum.sum()
+
+        {{x, y}, score}
+      end)
+
+    Enum.concat(scores, new_scores)
+    |> Map.new()
+  end)
+
+input_map
+|> Enum.filter(fn {_, e} -> e == 0 end)
+|> Enum.map(fn {coord, _} -> Map.fetch!(scores, coord) end)
+|> Enum.sum()
+```
