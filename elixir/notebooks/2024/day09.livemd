@@ -1,0 +1,92 @@
+# 🎄 Year 2024 🔔 Day 09
+
+## Setup
+
+```elixir
+elems =
+  File.read!("#{__DIR__}/../../../inputs/2024/day09.txt")
+  # "2333133121414131402"
+  |> String.trim()
+  |> String.graphemes()
+  |> Enum.with_index(fn e, i ->
+    asdf = if rem(i, 2) == 0, do: :file, else: :free
+    {String.to_integer(e), asdf}
+  end)
+  |> Enum.flat_map_reduce(0, fn
+    {count, :file}, acc ->
+      {List.duplicate(acc, count), acc + 1}
+
+    {count, :free}, acc ->
+      {List.duplicate(nil, count), acc}
+  end)
+  |> elem(0)
+```
+
+## Part 1
+
+```elixir
+defmodule Helper do
+  def solve(elems) do
+    elems = Enum.with_index(elems)
+    reversed = elems |> Enum.reverse()
+    solve(elems, reversed, [])
+  end
+
+  defp solve([], _, result), do: Enum.reverse(result)
+
+  defp solve(alist = [{a, ai} | atail], blist = [{b, bi} | btail], result) do
+    cond do
+      b == nil -> solve(alist, btail, result)
+      bi < ai -> solve(atail, blist, [nil | result])
+      a != nil -> solve(atail, blist, [a | result])
+      a == nil -> solve(atail, btail, [b | result])
+    end
+  end
+end
+
+Helper.solve(elems)
+|> Enum.filter(fn e -> e != nil end)
+|> Enum.with_index(fn e, i -> e * i end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+elem_counts =
+  elems
+  |> Enum.chunk_by(fn e -> e end)
+  |> Enum.map(fn list = [h | _] -> {h, Enum.count(list)} end)
+
+elem_counts
+|> Enum.filter(fn {e, _} -> e != nil end)
+|> Enum.reverse()
+|> Enum.reduce(elem_counts, fn {char_to_move, count_to_move}, elem_counts ->
+  IO.inspect({char_to_move, count_to_move})
+
+  Enum.flat_map_reduce(elem_counts, {_moved = false}, fn {char, count}, {moved} ->
+    cond do
+      char == char_to_move && moved == true ->
+        {[{nil, count}], {moved}}
+
+      char == char_to_move ->
+        {[{char, count}], {_moved = true}}
+
+      moved == true ->
+        {[{char, count}], {moved}}
+
+      char != nil || count < count_to_move ->
+        {[{char, count}], {moved}}
+
+      char == nil && count >= count_to_move ->
+        {[{char_to_move, count_to_move}, {nil, count - count_to_move}], {_moved = true}}
+    end
+  end)
+  |> elem(0)
+end)
+|> Enum.flat_map(fn {char, count} -> List.duplicate(char, count) end)
+|> Enum.with_index(fn char, i -> {char, i} end)
+|> Enum.filter(fn {char, _} -> char != nil end)
+|> Enum.map(fn {char, i} -> char * i end)
+|> Enum.sum()
+```
