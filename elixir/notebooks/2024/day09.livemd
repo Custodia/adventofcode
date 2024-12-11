@@ -1,5 +1,11 @@
 # 🎄 Year 2024 🔔 Day 09
 
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
 ## Setup
 
 ```elixir
@@ -20,6 +26,20 @@ elems =
       {List.duplicate(nil, count), acc}
   end)
   |> elem(0)
+
+{file_indexes, max_i} =
+  File.read!("#{__DIR__}/../../../inputs/2024/day09.txt")
+  # "2333133121414131402"
+  |> String.trim()
+  |> String.graphemes()
+  |> Enum.with_index(fn e, i ->
+    file_n = if rem(i, 2) == 0, do: div(i, 2), else: nil
+    {String.to_integer(e), file_n}
+  end)
+  |> Enum.map_reduce(0, fn {count, file_n}, start_i ->
+    {{file_n, start_i, count}, start_i + count}
+  end)
+  |> then(fn {elems, max_i} -> {elems, max_i - 1} end)
 ```
 
 ## Part 1
@@ -53,39 +73,77 @@ Helper.solve(elems)
 ## Part 2
 
 ```elixir
-elem_counts =
-  elems
-  |> Enum.chunk_by(fn e -> e end)
-  |> Enum.map(fn list = [h | _] -> {h, Enum.count(list)} end)
+defmodule Helper2 do
+  def step(elem_array, nil_indexes, to_move)
 
-elem_counts
-|> Enum.filter(fn {e, _} -> e != nil end)
-|> Enum.reverse()
-|> Enum.reduce(elem_counts, fn {char_to_move, count_to_move}, elem_counts ->
-  IO.inspect({char_to_move, count_to_move})
+  def step(elem_array, [{_, _, _count = 0} | nil_indexes], to_move) do
+    step(elem_array, nil_indexes, to_move)
+  end
 
-  Enum.flat_map_reduce(elem_counts, {_moved = false}, fn {char, count}, {moved} ->
-    cond do
-      char == char_to_move && moved == true ->
-        {[{nil, count}], {moved}}
+  def step(elem_array, nil_indexes, {file_n, start_i, move_count}) do
+    case find_nil_index(nil_indexes, 0, move_count, start_i) do
+      {{nil, nil_start_i, nil_size}, nil_list_i} ->
+        new_nil_indexes =
+          List.update_at(
+            nil_indexes,
+            nil_list_i,
+            fn _ -> {nil, nil_start_i + move_count, nil_size - move_count} end
+          )
 
-      char == char_to_move ->
-        {[{char, count}], {_moved = true}}
+        nil_end_i = nil_start_i + move_count - 1
+        nil_range = nil_start_i..nil_end_i
+        end_i = start_i + move_count - 1
+        move_range = start_i..end_i
 
-      moved == true ->
-        {[{char, count}], {moved}}
+        new_elem_array =
+          elem_array
+          |> then(
+            &Enum.reduce(nil_range, &1, fn ui, elem_array ->
+              put_in(elem_array[ui], file_n)
+            end)
+          )
+          |> then(
+            &Enum.reduce(move_range, &1, fn ui, elem_array ->
+              put_in(elem_array[ui], nil)
+            end)
+          )
 
-      char != nil || count < count_to_move ->
-        {[{char, count}], {moved}}
+        {new_elem_array, new_nil_indexes}
 
-      char == nil && count >= count_to_move ->
-        {[{char_to_move, count_to_move}, {nil, count - count_to_move}], {_moved = true}}
+      nil ->
+        {elem_array, nil_indexes}
     end
-  end)
-  |> elem(0)
-end)
-|> Enum.flat_map(fn {char, count} -> List.duplicate(char, count) end)
-|> Enum.with_index(fn char, i -> {char, i} end)
+  end
+
+  defp find_nil_index(nil_indexes, i, min_size, max_i) do
+    [nil_index = {nil, start_i, size} | tail] = nil_indexes
+
+    cond do
+      start_i > max_i ->
+        nil
+
+      size >= min_size ->
+        {nil_index, i}
+
+      true ->
+        find_nil_index(tail, i + 1, min_size, max_i)
+    end
+  end
+end
+
+elem_array = elems |> Enum.into(Arrays.new())
+nil_indexes = Enum.take_every(Enum.drop(file_indexes, 1), 2)
+file_indexes = Enum.take_every(file_indexes, 2) |> Enum.reverse()
+
+file_indexes
+|> Enum.reduce(
+  {elem_array, nil_indexes},
+  fn file_loc, {elem_array, nil_indexes} ->
+    Helper2.step(elem_array, nil_indexes, file_loc)
+  end
+)
+|> elem(0)
+|> Enum.with_index(fn file_n, i -> {file_n, i} end)
 |> Enum.filter(fn {char, _} -> char != nil end)
 |> Enum.map(fn {char, i} -> char * i end)
 |> Enum.sum()
