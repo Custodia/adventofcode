@@ -1,0 +1,87 @@
+# 🎄 Year 2024 🔔 Day 11
+
+## Setup
+
+```elixir
+input_map =
+  File.read!("#{__DIR__}/../../../inputs/2024/day11.txt")
+  # "125 17"
+  |> String.trim()
+  |> String.split(" ", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+## Part 1
+
+```elixir
+defmodule Helper do
+  def solve(_, 0), do: 1
+
+  def solve(0, steps) do
+    solve(1, steps - 1)
+  end
+
+  def solve(n, steps) do
+    digits = Integer.digits(n)
+    digit_count = Enum.count(digits)
+
+    if rem(digit_count, 2) == 0 do
+      {a, b} = Enum.split(digits, div(digit_count, 2))
+      solve(Integer.undigits(a), steps - 1) + solve(Integer.undigits(b), steps - 1)
+    else
+      solve(n * 2024, steps - 1)
+    end
+  end
+end
+
+input_map
+|> Enum.map(&Helper.solve(&1, 25))
+|> Enum.sum()
+
+# result = 199946
+```
+
+## Part 2
+
+```elixir
+defmodule Helper2 do
+  def solve(_, 0), do: 1
+
+  def solve(n, steps) do
+    case :ets.lookup(:stone_memo, {n, steps}) do
+      [{{^n, ^steps}, result}] ->
+        result
+
+      [] ->
+        result = solve_helper(n, steps)
+        :ets.insert(:stone_memo, {{n, steps}, result})
+        result
+    end
+  end
+
+  defp solve_helper(0, steps), do: solve(1, steps - 1)
+
+  defp solve_helper(n, steps) do
+    digits = Integer.digits(n)
+    digit_count = Enum.count(digits)
+
+    if rem(digit_count, 2) == 0 do
+      {a, b} = Enum.split(digits, div(digit_count, 2))
+      solve(Integer.undigits(a), steps - 1) + solve(Integer.undigits(b), steps - 1)
+    else
+      solve(n * 2024, steps - 1)
+    end
+  end
+end
+
+:ets.new(:stone_memo, [:set, :public, :named_table])
+
+result =
+  input_map
+  |> Enum.map(&Helper2.solve(&1, 75))
+  |> Enum.sum()
+
+:ets.delete(:stone_memo)
+
+result
+```
