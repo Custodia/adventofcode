@@ -1,0 +1,188 @@
+# 🎄 Year 2024 🔔 Day 12
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+garden_map =
+  File.read!("#{__DIR__}/../../../inputs/2024/day12.txt")
+  |> String.trim()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+  |> List.zip()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.map(fn column ->
+    Enum.into(column, Arrays.new())
+  end)
+  |> Enum.into(Arrays.new())
+
+max_x = Arrays.size(garden_map) - 1
+max_y = Arrays.size(garden_map[0]) - 1
+
+{{max_x, max_y}, garden_map}
+```
+
+## Part 1
+
+```elixir
+defmodule Helper do
+  def calculate_area(garden_map, tracking_array, tracking_index, {x, y}, plant, {max_x, max_y}) do
+    tracking_array = put_in(tracking_array[x][y], tracking_index)
+
+    matching_adjacent =
+      get_adjacent(garden_map, {x, y}, {max_x, max_y})
+      |> Enum.filter(fn {_, e} -> e == plant end)
+
+    perimiter_add = 4 - Enum.count(matching_adjacent)
+
+    matching_adjacent
+    |> Enum.reduce(
+      {tracking_array, perimiter_add, _area_add = 1},
+      fn {{x, y}, ^plant}, {tracking_array, perimiter, area} ->
+        if tracking_array[x][y] == nil do
+          {new_tracking_array, perimiter_add, area_add} =
+            calculate_area(
+              garden_map,
+              tracking_array,
+              tracking_index,
+              {x, y},
+              plant,
+              {max_x, max_y}
+            )
+
+          {new_tracking_array, perimiter + perimiter_add, area + area_add}
+        else
+          {tracking_array, perimiter, area}
+        end
+      end
+    )
+  end
+
+  defp get_adjacent(garden_map, {x, y}, {max_x, max_y}) do
+    [
+      {x + 1, y},
+      {x - 1, y},
+      {x, y + 1},
+      {x, y - 1}
+    ]
+    |> Enum.map(fn {x, y} ->
+      if x < 0 || y < 0 || x > max_x || y > max_y do
+        {{x, y}, nil}
+      else
+        {{x, y}, garden_map[x][y]}
+      end
+    end)
+  end
+end
+
+tracking_array =
+  List.duplicate(List.duplicate(nil, max_y + 1) |> Enum.into(Arrays.new()), max_x + 1)
+  |> Enum.into(Arrays.new())
+
+area_array = Arrays.new()
+perimiter_array = Arrays.new()
+
+Helper.calculate_area(garden_map, tracking_array, 0, {0, 0}, garden_map[0][0], {max_x, max_y})
+
+{tracking_array, max_tracking_index, area_array, perimiter_array} =
+  for(x <- 0..max_x, y <- 0..max_y, do: {x, y})
+  |> Enum.reduce(
+    {tracking_array, _tracking_index = 0, area_array, perimiter_array},
+    fn {x, y}, {tracking_array, tracking_index, area_array, perimiter_array} ->
+      if tracking_array[x][y] == nil do
+        {new_tracking_array, perimiter, area} =
+          Helper.calculate_area(
+            garden_map,
+            tracking_array,
+            tracking_index,
+            _start_coords = {x, y},
+            _plant = garden_map[x][y],
+            {max_x, max_y}
+          )
+
+        new_perimiter_array = Arrays.append(perimiter_array, perimiter)
+        new_area_array = Arrays.append(area_array, area)
+        {new_tracking_array, tracking_index + 1, new_area_array, new_perimiter_array}
+      else
+        {tracking_array, tracking_index, area_array, perimiter_array}
+      end
+    end
+  )
+  |> then(fn {tracking_array, tracking_index, area_array, perimiter_array} ->
+    {tracking_array, tracking_index - 1, area_array, perimiter_array}
+  end)
+
+0..max_tracking_index
+|> Enum.reduce(0, fn i, acc -> acc + area_array[i] * perimiter_array[i] end)
+
+# solution: 1371306
+```
+
+## Part 2
+
+```elixir
+# reusing data calculated in part 1 as I'm lazy
+get_value = fn {x, y} ->
+  if x < 0 || y < 0 || x > max_x || y > max_y do
+    -1
+  else
+    tracking_array[x][y]
+  end
+end
+
+sides_array = List.duplicate(0, max_tracking_index + 1) |> Enum.into(Arrays.new())
+
+column_comparisons =
+  for x <- 0..max_x, do: for(y <- 0..max_y, do: {{x, y}, {x - 1, y}})
+
+column_comparisons_2 =
+  for x <- 0..max_x, do: for(y <- 0..max_y, do: {{x, y}, {x + 1, y}})
+
+row_comparisons =
+  for y <- 0..max_y, do: for(x <- 0..max_x, do: {{x, y}, {x, y - 1}})
+
+row_comparisons_2 =
+  for y <- 0..max_y, do: for(x <- 0..max_x, do: {{x, y}, {x, y + 1}})
+
+sides_array =
+  Enum.concat([
+    column_comparisons,
+    column_comparisons_2,
+    row_comparisons,
+    row_comparisons_2
+  ])
+  |> Enum.map(&Enum.map(&1, fn {a, b} -> {get_value.(a), get_value.(b)} end))
+  |> Enum.reduce(sides_array, fn comparisons, sides_array ->
+    Enum.reduce(
+      comparisons,
+      {sides_array, _prev = nil},
+      fn {e, e_comp}, {sides_array, prev} ->
+        already_counted = e == prev
+        is_at_edge = e != e_comp
+
+        cond do
+          !already_counted && is_at_edge ->
+            new_sides_array = update_in(sides_array[e], fn n -> n + 1 end)
+            {new_sides_array, _new_prev = e}
+
+          !is_at_edge ->
+            {sides_array, nil}
+
+          already_counted ->
+            {sides_array, e}
+        end
+      end
+    )
+    |> elem(0)
+  end)
+
+0..max_tracking_index
+|> Enum.reduce(0, fn i, acc -> acc + area_array[i] * sides_array[i] end)
+
+# solution: 805880
+```
