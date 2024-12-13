@@ -1,0 +1,85 @@
+# 🎄 Year 2024 🔔 Day 13
+
+## Setup
+
+```elixir
+matrices =
+  File.read!("#{__DIR__}/../../../inputs/2024/day13.txt")
+  |> String.split("\n\n", trim: true)
+  |> Enum.map(fn input ->
+    [
+      "Button A: " <> button_a,
+      "Button B: " <> button_b,
+      "Prize: " <> target
+    ] = String.split(input, "\n", trim: true)
+
+    matcher_regex = ~r/X\+?=?(\d+), Y\+?=?(\d+)/
+
+    [ax, ay] =
+      Regex.run(matcher_regex, button_a, capture: :all_but_first)
+      |> Enum.map(&String.to_integer/1)
+
+    [bx, by] =
+      Regex.run(matcher_regex, button_b, capture: :all_but_first)
+      |> Enum.map(&String.to_integer/1)
+
+    [xt, yt] =
+      Regex.run(matcher_regex, target, capture: :all_but_first)
+      |> Enum.map(&String.to_integer/1)
+
+    [
+      [ax, bx, xt],
+      [ay, by, yt]
+    ]
+  end)
+```
+
+## Part 1
+
+```elixir
+matrices
+# Gaussian elimination ignoring integer division remainders
+|> Enum.map(fn original = [[ax, bx, xt], [ay, by, yt]] ->
+  [0, by, yt] = [ay * ax - ax * ay, by * ax - bx * ay, yt * ax - xt * ay]
+  br = div(yt, by)
+  ar = div(xt - bx * br, ax)
+
+  {original, {ar, br}}
+end)
+|> Enum.filter(fn {[[ax, bx, xt], [ay, by, yt]], {ar, br}} ->
+  solution_in_bound = ar >= 0 && br >= 0 && ar <= 100 && br <= 100
+  # since remainders are ignored make sure the result works
+  solution_correct = ax * ar + bx * br == xt && ay * ar + by * br == yt
+
+  solution_in_bound && solution_correct
+end)
+|> Enum.map(fn {_, {ar, br}} -> ar * 3 + br end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+matrices
+|> Enum.map(fn [[ax, bx, xt], [ay, by, yt]] ->
+  add_to_target = 10_000_000_000_000
+  [[ax, bx, xt + add_to_target], [ay, by, yt + add_to_target]]
+end)
+# Gaussian elimination ignoring integer division remainders
+|> Enum.map(fn original = [[ax, bx, xt], [ay, by, yt]] ->
+  [0, by, yt] = [ay * ax - ax * ay, by * ax - bx * ay, yt * ax - xt * ay]
+  br = div(yt, by)
+  ar = div(xt - bx * br, ax)
+
+  {original, {ar, br}}
+end)
+|> Enum.filter(fn {[[ax, bx, xt], [ay, by, yt]], {ar, br}} ->
+  solution_in_bound = ar >= 0 && br >= 0
+  # since remainders are ignored make sure the result works
+  solution_correct = ax * ar + bx * br == xt && ay * ar + by * br == yt
+
+  solution_in_bound && solution_correct
+end)
+|> Enum.map(fn {_, {ar, br}} -> ar * 3 + br end)
+|> Enum.sum()
+```
