@@ -1,0 +1,114 @@
+# 🎄 Year 2024 🔔 Day 14
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+robot_starts =
+  File.read!("#{__DIR__}/../../../inputs/2024/day14.txt")
+  # """
+  # p=0,4 v=3,-3
+  # p=6,3 v=-1,-3
+  # p=10,3 v=-1,2
+  # p=2,0 v=2,-1
+  # p=0,0 v=1,3
+  # p=3,0 v=-2,-2
+  # p=7,6 v=-1,-3
+  # p=3,0 v=-1,-2
+  # p=9,3 v=2,3
+  # p=7,3 v=-1,2
+  # p=2,4 v=2,-3
+  # p=9,5 v=-3,-3
+  # """
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    ["p=" <> ps, "v=" <> vs] = String.split(line, " ", trim: true)
+    pos = ps |> String.split(",") |> Enum.map(&String.to_integer/1) |> List.to_tuple()
+    vel = vs |> String.split(",") |> Enum.map(&String.to_integer/1) |> List.to_tuple()
+
+    {pos, vel}
+  end)
+
+{width, height} = {101, 103}
+{max_x, max_y} = {width - 1, height - 1}
+```
+
+## Part 1
+
+```elixir
+robot_starts
+|> Enum.map(fn {{sx, sy}, {vx, vy}} ->
+  x = Integer.mod(sx + vx * 100, width)
+  y = Integer.mod(sy + vy * 100, height)
+  {x, y}
+end)
+|> Enum.filter(fn {x, y} ->
+  x != div(max_x, 2) && y != div(max_y, 2)
+end)
+# |> Enum.sort()
+|> Enum.group_by(fn {x, y} -> {x < div(max_x, 2), y < div(max_y, 2)} end)
+|> Enum.reduce(1, fn {_, robots}, acc -> acc * Enum.count(robots) end)
+```
+
+## Part 2
+
+```elixir
+robot_counts_array =
+  List.duplicate(List.duplicate(0, height) |> Enum.into(Arrays.new()), width)
+  |> Enum.into(Arrays.new())
+  |> then(
+    &Enum.reduce(robot_starts, &1, fn {{x, y}, _}, robot_counts_array ->
+      update_in(robot_counts_array[x][y], fn e -> e + 1 end)
+    end)
+  )
+
+Stream.iterate(1, fn e -> e + 1 end)
+|> Stream.scan({0, robot_starts, robot_counts_array}, fn i, {_, robots, robot_counts_array} ->
+  {new_robots, new_robot_counts_array} =
+    robots
+    |> Enum.map_reduce(
+      robot_counts_array,
+      fn {{xp, yp}, {xv, yv}}, robot_counts_array ->
+        nx = Integer.mod(xp + xv, width)
+        ny = Integer.mod(yp + yv, height)
+
+        robot_counts_array = update_in(robot_counts_array[xp][yp], &(&1 - 1))
+        robot_counts_array = update_in(robot_counts_array[nx][ny], &(&1 + 1))
+        new_robot = {{nx, ny}, {xv, yv}}
+        {new_robot, robot_counts_array}
+      end
+    )
+
+  {i, new_robots, new_robot_counts_array}
+end)
+|> Stream.filter(fn {_, _, robot_counts_array} ->
+  Enum.any?(robot_counts_array, fn column ->
+    column
+    |> Enum.chunk_by(fn e -> e >= 1 end)
+    |> Enum.any?(fn [head | tail] -> head >= 1 && Enum.count(tail) >= 29 end)
+  end)
+end)
+|> Enum.take(1)
+|> Enum.map(fn {i, robots, _robot_counts_array} ->
+  empty_map = List.duplicate(List.duplicate(".", width), height)
+
+  filled_map =
+    Enum.reduce(robots, empty_map, fn {{xp, yp}, _}, map ->
+      List.update_at(map, yp, &List.update_at(&1, xp, fn _ -> "1" end))
+    end)
+    |> Enum.map(&Enum.join(&1, ""))
+    |> Enum.join("\n")
+
+  {i, filled_map}
+end)
+|> Enum.each(fn {i, filled_map} ->
+  IO.puts("index: #{i}\n")
+  IO.puts(filled_map)
+  IO.puts("\n")
+end)
+```
