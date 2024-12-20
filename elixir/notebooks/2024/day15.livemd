@@ -1,0 +1,279 @@
+# 🎄 Year 2024 🔔 Day 15
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+defmodule Helpers do
+  def two_d_array_to_list(two_d_array) do
+    two_d_array
+    |> Arrays.map(&array_to_list/1)
+    |> array_to_list()
+  end
+
+  def array_to_list(array) do
+    array
+    |> Arrays.reduce([], fn e, acc ->
+      [e | acc]
+    end)
+    |> Enum.reverse()
+  end
+
+  def transpose_list(list) do
+    list
+    |> List.zip()
+    |> Enum.map(&Tuple.to_list/1)
+  end
+end
+```
+
+```elixir
+[map_input, instruction_input] =
+  File.read!("#{__DIR__}/../../../inputs/2024/day15.txt")
+  |> String.split("\n\n", trim: true)
+
+# Part 1
+
+map_array =
+  map_input
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+  |> Helpers.transpose_list()
+  |> Enum.map(&Enum.into(&1, Arrays.new()))
+  |> Enum.into(Arrays.new())
+
+{max_x, max_y} = {Arrays.size(map_array) - 1, Arrays.size(map_array[0]) - 1}
+
+{start_x, start_y} =
+  for(x <- 0..max_x, y <- 0..max_y, do: {x, y})
+  |> Enum.find(fn {x, y} -> map_array[x][y] == "@" end)
+
+map_array = put_in(map_array[start_x][start_y], ".")
+
+instructions =
+  instruction_input
+  |> String.split("\n", trim: true)
+  |> Enum.flat_map(&String.graphemes/1)
+
+# Part 2
+
+p2_map_array =
+  map_input
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+  |> Enum.map(
+    &Enum.flat_map(&1, fn e ->
+      case e do
+        "#" -> ["#", "#"]
+        "O" -> ["[", "]"]
+        "." -> [".", "."]
+        "@" -> ["@", "."]
+      end
+    end)
+  )
+  |> Helpers.transpose_list()
+  |> Enum.map(&Enum.into(&1, Arrays.new()))
+  |> Enum.into(Arrays.new())
+
+{p2_max_x, p2_max_y} = {Arrays.size(p2_map_array) - 1, Arrays.size(p2_map_array[0]) - 1}
+
+{p2_start_x, p2_start_y} =
+  for(x <- 0..p2_max_x, y <- 0..p2_max_y, do: {x, y})
+  |> Enum.find(fn {x, y} -> p2_map_array[x][y] == "@" end)
+
+p2_map_array = put_in(p2_map_array[p2_start_x][p2_start_y], ".")
+```
+
+## Part 1
+
+```elixir
+dir_to_v = %{
+  "^" => {0, -1},
+  "v" => {0, 1},
+  "<" => {-1, 0},
+  ">" => {1, 0}
+}
+
+instructions
+|> Enum.reduce({{start_x, start_y}, map_array}, fn dir, {{robo_x, robo_y}, map_array} ->
+  {move_x, move_y} = dir_to_v[dir]
+
+  coords_to_move =
+    Stream.iterate({robo_x, robo_y}, fn {x, y} -> {x + move_x, y + move_y} end)
+    |> Stream.drop(1)
+    |> Enum.reduce_while([], fn {x, y}, acc ->
+      case map_array[x][y] do
+        "#" ->
+          {:halt, []}
+
+        "." ->
+          {:halt, Enum.reverse([{x, y} | acc])}
+
+        "O" ->
+          {:cont, [{x, y} | acc]}
+      end
+    end)
+
+  case coords_to_move do
+    [] ->
+      # do nothing
+      {{robo_x, robo_y}, map_array}
+
+    [_] ->
+      # Just move the robot
+      {{robo_x + move_x, robo_y + move_y}, map_array}
+
+    [{head_x, head_y} | tail] ->
+      # Move boxes and the robot
+      map_array
+      |> then(fn map_array -> put_in(map_array[head_x][head_y], ".") end)
+      |> then(
+        &Enum.reduce(tail, &1, fn {x, y}, map_array ->
+          put_in(map_array[x][y], "O")
+        end)
+      )
+      |> then(fn new_map_array ->
+        {{robo_x + move_x, robo_y + move_y}, new_map_array}
+      end)
+  end
+end)
+|> elem(1)
+|> Helpers.two_d_array_to_list()
+|> List.zip()
+|> Enum.map(&Tuple.to_list/1)
+|> Enum.with_index(fn column, x ->
+  Enum.with_index(column, fn e, y -> if e == "O", do: x * 100 + y, else: 0 end)
+end)
+|> Enum.concat()
+|> Enum.sum()
+|> tap(fn result ->
+  if result == 1_505_963, do: IO.puts("Correct answer"), else: IO.puts("Wrong.")
+end)
+```
+
+## Part 2
+
+```elixir
+map_array = p2_map_array
+{max_x, max_y} = {p2_max_x, p2_max_y}
+{start_x, start_y} = {p2_start_x, p2_start_y}
+
+defmodule Part2 do
+  def get_next_coords(coords, {move_x, move_y}, vertical, map_array) do
+    coords
+    |> Enum.map(fn {x, y} -> {x + move_x, y + move_y} end)
+    |> then(fn coords ->
+      if vertical do
+        coords
+        |> Enum.flat_map(fn {x, y} ->
+          case map_array[x][y] do
+            "[" ->
+              [{x, y}, {x + 1, y}]
+
+            "]" ->
+              [{x, y}, {x - 1, y}]
+
+            "#" ->
+              [{x, y}]
+
+            "." ->
+              []
+          end
+        end)
+      else
+        coords
+      end
+    end)
+    |> MapSet.new()
+  end
+
+  def print_warehouse({robo_x, robo_y}, map_array) do
+    map_array
+    |> then(fn map_array -> put_in(map_array[robo_x][robo_y], "@") end)
+    |> Helpers.two_d_array_to_list()
+    |> List.zip()
+    |> Enum.map(&Tuple.to_list/1)
+    |> Enum.map(&Enum.join/1)
+    |> Enum.join("\n")
+    |> IO.puts()
+  end
+end
+
+instructions
+|> Enum.reduce({{start_x, start_y}, map_array}, fn dir, {{robo_x, robo_y}, map_array} ->
+  vertical = dir == "^" || dir == "v"
+  {move_x, move_y} = dir_to_v[dir]
+
+  coords_to_move =
+    Stream.unfold(MapSet.new([{robo_x, robo_y}]), fn coords ->
+      next_coords = Part2.get_next_coords(coords, {move_x, move_y}, vertical, map_array)
+
+      {next_coords, next_coords}
+    end)
+    |> Enum.reduce_while([], fn coords, acc ->
+      all_empty = Enum.all?(coords, fn {x, y} -> map_array[x][y] == "." end)
+      any_walls = Enum.any?(coords, fn {x, y} -> map_array[x][y] == "#" end)
+
+      cond do
+        any_walls == true ->
+          {:halt, []}
+
+        all_empty == true ->
+          {:halt, [coords | acc]}
+
+        true ->
+          {:cont, [coords | acc]}
+      end
+    end)
+
+  # IO.inspect(coords_to_move)
+
+  case coords_to_move do
+    [] ->
+      # do nothing
+      {{robo_x, robo_y}, map_array}
+
+    [_] ->
+      # Just move the robot
+      {{robo_x + move_x, robo_y + move_y}, map_array}
+
+    [_ | tail] ->
+      # Move boxes and the robot
+      map_array
+      |> then(
+        &Enum.reduce(tail, &1, fn coords, map_array ->
+          Enum.reduce(coords, map_array, fn {x, y}, map_array ->
+            e = map_array[x][y]
+
+            map_array
+            |> then(fn map_array -> put_in(map_array[x][y], ".") end)
+            |> then(fn map_array ->
+              put_in(map_array[x + move_x][y + move_y], e)
+            end)
+          end)
+        end)
+      )
+      |> then(fn new_map_array ->
+        {{robo_x + move_x, robo_y + move_y}, new_map_array}
+      end)
+  end
+end)
+|> tap(fn {{robo_x, robo_y}, map_array} -> Part2.print_warehouse({robo_x, robo_y}, map_array) end)
+|> elem(1)
+|> Helpers.two_d_array_to_list()
+|> List.zip()
+|> Enum.map(&Tuple.to_list/1)
+|> Enum.with_index(fn column, x ->
+  Enum.with_index(column, fn e, y -> if e == "[", do: x * 100 + y, else: 0 end)
+end)
+|> Enum.concat()
+|> Enum.sum()
+|> tap(fn result ->
+  if result == 1_543_141, do: IO.puts("Correct answer"), else: IO.puts("Wrong.")
+end)
+```
