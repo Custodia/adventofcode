@@ -1,0 +1,178 @@
+# 🎄 Year 2024 🔔 Day 16
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+map_array =
+  File.read!("#{__DIR__}/../../../inputs/2024/day16.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+  |> List.zip()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.map(&Enum.into(&1, Arrays.new()))
+  |> Enum.into(Arrays.new())
+
+{max_x, max_y} = {Arrays.size(map_array) - 1, Arrays.size(map_array[0]) - 1}
+
+{start_x, start_y} =
+  for(x <- 0..max_x, y <- 0..max_y, do: {x, y})
+  |> Enum.find(fn {x, y} -> map_array[x][y] == "S" end)
+
+{end_x, end_y} =
+  for(x <- 0..max_x, y <- 0..max_y, do: {x, y})
+  |> Enum.find(fn {x, y} -> map_array[x][y] == "E" end)
+
+map_array = put_in(map_array[start_x][start_y], ".")
+map_array = put_in(map_array[end_x][end_y], ".")
+
+start_node = {{start_x, start_y}, {1, 0}}
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  @left_turn_map %{
+    {0, -1} => {-1, 0},
+    {1, 0} => {0, -1},
+    {0, 1} => {1, 0},
+    {-1, 0} => {0, 1}
+  }
+  @right_turn_map %{
+    {0, -1} => {1, 0},
+    {1, 0} => {0, 1},
+    {0, 1} => {-1, 0},
+    {-1, 0} => {0, -1}
+  }
+
+  def djikstra(map_array, start_node) do
+    djikstra(
+      _current_node = start_node,
+      _nodes_to_visit = Map.new([{start_node, 0}]),
+      _visited_nodes = Map.new(),
+      _map_array = map_array
+    )
+  end
+
+  defp get_next_nodes({coord = {cx, cy}, dir = {dx, dy}}, score, visited_nodes, map_array) do
+    left_dir = Map.fetch!(@left_turn_map, dir)
+    right_dir = Map.fetch!(@right_turn_map, dir)
+
+    [
+      {{{cx + dx, cy + dy}, dir}, score + 1},
+      {{coord, left_dir}, score + 1000},
+      {{coord, right_dir}, score + 1000}
+    ]
+    |> Enum.filter(fn {node = {{x, y}, _}, _score} ->
+      !Map.has_key?(visited_nodes, node) and map_array[x][y] == "."
+    end)
+  end
+
+  defp djikstra(current_node, nodes_to_visit, visited_nodes, map_array)
+
+  defp djikstra(_, nodes_to_visit, visited_nodes, _) when nodes_to_visit == %{} do
+    visited_nodes
+  end
+
+  defp djikstra(current_node, nodes_to_visit, visited_nodes, map_array) do
+    score = Map.fetch!(nodes_to_visit, current_node)
+    nodes_to_visit = Map.delete(nodes_to_visit, current_node)
+    visited_nodes = Map.put(visited_nodes, current_node, score)
+
+    next_nodes = get_next_nodes(current_node, score, visited_nodes, map_array)
+
+    nodes_to_visit =
+      Enum.reduce(next_nodes, nodes_to_visit, fn {node, score}, nodes_to_visit ->
+        Map.update(nodes_to_visit, node, score, fn cur_score -> min(score, cur_score) end)
+      end)
+
+    next_node =
+      nodes_to_visit
+      |> Enum.min_by(fn {_, score} -> score end, &<=/2, fn -> {nil, nil} end)
+      |> elem(0)
+
+    djikstra(next_node, nodes_to_visit, visited_nodes, map_array)
+  end
+end
+
+Part1.djikstra(map_array, start_node)
+|> Enum.filter(fn {{{x, y}, {_dx, _dy}}, _score} -> x == end_x and y == end_y end)
+|> Enum.min_by(&elem(&1, 1))
+|> elem(1)
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  @left_turn_map %{
+    {0, -1} => {-1, 0},
+    {1, 0} => {0, -1},
+    {0, 1} => {1, 0},
+    {-1, 0} => {0, 1}
+  }
+  @right_turn_map %{
+    {0, -1} => {1, 0},
+    {1, 0} => {0, 1},
+    {0, 1} => {-1, 0},
+    {-1, 0} => {0, -1}
+  }
+
+  def reverse_traversal(visited_nodes, {start_node, start_score}) do
+    reverse_traversal(
+      _visited_nodes = visited_nodes,
+      _nodes_to_check = [{start_node, start_score}],
+      _found_coords = MapSet.new()
+    )
+  end
+
+  defp reverse_traversal(visited_nodes, nodes_to_check, found_coords)
+
+  defp reverse_traversal(_visited_nodes, [], found_coords) do
+    found_coords
+  end
+
+  defp reverse_traversal(visited_nodes, nodes_to_check, found_coords) do
+    found_coords =
+      Enum.reduce(nodes_to_check, found_coords, fn {{coord, _}, _}, found_coords ->
+        MapSet.put(found_coords, coord)
+      end)
+
+    next_nodes =
+      nodes_to_check
+      |> Enum.flat_map(&get_next_nodes(&1, visited_nodes))
+
+    reverse_traversal(visited_nodes, next_nodes, found_coords)
+  end
+
+  defp get_next_nodes({{coord = {cx, cy}, dir = {dx, dy}}, score}, visited_nodes) do
+    left_dir = Map.fetch!(@left_turn_map, dir)
+    right_dir = Map.fetch!(@right_turn_map, dir)
+
+    [
+      {{{cx - dx, cy - dy}, dir}, score - 1},
+      {{coord, left_dir}, score - 1000},
+      {{coord, right_dir}, score - 1000}
+    ]
+    |> Enum.filter(fn {node, score} ->
+      Map.get(visited_nodes, node) == score
+    end)
+  end
+end
+
+visited_nodes = Part1.djikstra(map_array, start_node)
+
+{end_node, end_score} =
+  visited_nodes
+  |> Enum.filter(fn {{{x, y}, {_dx, _dy}}, _score} -> x == end_x and y == end_y end)
+  |> Enum.min_by(&elem(&1, 1))
+
+Part2.reverse_traversal(visited_nodes, {end_node, end_score})
+|> Enum.count()
+```
