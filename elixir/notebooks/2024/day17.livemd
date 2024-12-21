@@ -1,0 +1,199 @@
+# 🎄 Year 2024 🔔 Day 17
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+[registers, program] =
+  File.read!("#{__DIR__}/../../../inputs/2024/day17.txt")
+  # """
+  # Register A: 2024
+  # Register B: 0
+  # Register C: 0
+
+  # Program: 0,3,5,4,3,0
+  # """
+  |> String.split("\n\n", trim: true)
+
+program =
+  program
+  |> String.trim()
+  |> then(fn "Program: " <> rest -> rest end)
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.chunk_every(2)
+  |> Enum.map(&List.to_tuple/1)
+  |> Arrays.new()
+
+registers =
+  registers
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    [num] = Regex.run(~r/Register \w: (\d+)/, line, capture: :all_but_first)
+    String.to_integer(num)
+  end)
+  |> List.to_tuple()
+
+{program, registers}
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  import Bitwise, only: [bxor: 2]
+
+  def run_program(program, registers, pointer \\ 0, out \\ [])
+
+  def run_program(program, registers, pointer, out) do
+    if pointer < 0 or pointer >= Arrays.size(program) do
+      out |> Enum.reverse()
+    else
+      case run_command(program[pointer], registers, pointer) do
+        {new_registers, new_pointer} ->
+          run_program(program, new_registers, new_pointer, out)
+
+        {new_registers, new_pointer, add_to_out} ->
+          new_out = [add_to_out | out]
+          run_program(program, new_registers, new_pointer, new_out)
+      end
+    end
+  end
+
+  def run_command(instruction, registers, pointer)
+  # The adv instruction (opcode 0) performs division.
+  # The numerator is the value in the A register.
+  # The denominator is found by raising 2 to the power of the instruction's combo operand.
+  # (So, an operand of 2 would divide A by 4 (2^2); an operand of 5 would divide A by 2^B.)
+  # The result of the division operation is truncated to an integer and then written to the A register.
+  def run_command({0, combo_operand}, registers = {a, b, c}, pointer) do
+    combo_operand = get_combo_operand(combo_operand, registers)
+    new_a = div(a, Integer.pow(2, combo_operand))
+    {{new_a, b, c}, pointer + 1}
+  end
+
+  # The bxl instruction (opcode 1) calculates the bitwise XOR
+  # of register B and the instruction's literal operand, then stores the result in register B.
+  def run_command({1, literal_operand}, {a, b, c}, pointer) do
+    new_b = bxor(b, literal_operand)
+    {{a, new_b, c}, pointer + 1}
+  end
+
+  # The bst instruction (opcode 2) calculates the value of its combo operand modulo 8
+  # (thereby keeping only its lowest 3 bits), then writes that value to the B register.
+  def run_command({2, combo_operand}, registers = {a, _b, c}, pointer) do
+    combo_operand = get_combo_operand(combo_operand, registers)
+    new_b = Integer.mod(combo_operand, 8)
+    {{a, new_b, c}, pointer + 1}
+  end
+
+  # The jnz instruction (opcode 3) does nothing if the A register is 0.
+  # However, if the A register is not zero, it jumps by setting the instruction pointer
+  # to the value of its literal operand; if this instruction jumps, the instruction pointer
+  # is not increased by 2 after this instruction.
+  def run_command({3, literal_operand}, registers = {a, _b, _c}, pointer) do
+    new_pointer = if a == 0, do: pointer + 1, else: div(literal_operand, 2)
+    {registers, new_pointer}
+  end
+
+  # The bxc instruction (opcode 4) calculates the bitwise XOR of register B and register C,
+  # then stores the result in register B.
+  # (For legacy reasons, this instruction reads an operand but ignores it.)
+  def run_command({4, _}, {a, b, c}, pointer) do
+    new_b = bxor(b, c)
+    {{a, new_b, c}, pointer + 1}
+  end
+
+  # The out instruction (opcode 5) calculates the value of its combo operand modulo 8,
+  # then outputs that value. (If a program outputs multiple values, they are separated by commas.)
+  def run_command({5, combo_operand}, registers, pointer) do
+    combo_operand = get_combo_operand(combo_operand, registers)
+    out = Integer.mod(combo_operand, 8)
+    {registers, pointer + 1, out}
+  end
+
+  # The bdv instruction (opcode 6) works exactly like the adv instruction except that
+  # the result is stored in the B register. (The numerator is still read from the A register.)
+  def run_command({6, combo_operand}, registers = {a, _b, c}, pointer) do
+    combo_operand = get_combo_operand(combo_operand, registers)
+    new_b = div(a, Integer.pow(2, combo_operand))
+    {{a, new_b, c}, pointer + 1}
+  end
+
+  # The cdv instruction (opcode 7) works exactly like the adv instruction except that the
+  # result is stored in the C register. (The numerator is still read from the A register.)
+  def run_command({7, combo_operand}, registers = {a, b, _c}, pointer) do
+    combo_operand = get_combo_operand(combo_operand, registers)
+    new_c = div(a, Integer.pow(2, combo_operand))
+    {{a, b, new_c}, pointer + 1}
+  end
+
+  defp get_combo_operand(combo_operand, registers)
+
+  defp get_combo_operand(combo_operand, {a, b, c}) do
+    case combo_operand do
+      e when e <= 3 -> e
+      4 -> a
+      5 -> b
+      6 -> c
+      7 -> raise("combo_operand 7 is not valid")
+    end
+  end
+end
+
+Part1.run_program(program, registers)
+|> Enum.join(",")
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  import Bitwise
+
+  def solve(program) do
+    [head | tail] =
+      program
+      |> Arrays.to_list()
+      |> Enum.flat_map(&Tuple.to_list/1)
+      |> Enum.reverse()
+
+    possible_answers = [0]
+
+    solve(program, [head], tail, possible_answers)
+  end
+
+  def solve(program, target, target_remainder, possible_answers)
+
+  def solve(program, target, target_remainder, possible_answers) do
+    new_possible_answers =
+      possible_answers
+      |> Enum.flat_map(fn possible_answer ->
+        0..7
+        |> Enum.map(fn e -> (possible_answer <<< 3) + e end)
+      end)
+      |> Enum.filter(fn possible_answer ->
+        result = Part1.run_program(program, {possible_answer, 0, 0}) |> Enum.reverse()
+
+        result == target
+      end)
+
+    if target_remainder == [] do
+      new_possible_answers
+    else
+      [remainder_head | remainder_tail] = target_remainder
+      new_target = target ++ [remainder_head]
+
+      solve(program, new_target, remainder_tail, new_possible_answers)
+    end
+  end
+end
+
+Part2.solve(program)
+|> Enum.min()
+```
