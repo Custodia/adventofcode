@@ -1,0 +1,79 @@
+# 🎄 Year 2024 🔔 Day 19
+
+## Setup
+
+```elixir
+[towels, combos] =
+  File.read!("#{__DIR__}/../../../inputs/2024/day19.txt")
+  |> String.split("\n\n", trim: true)
+
+towels =
+  towels
+  |> String.split(", ", trim: true)
+
+combos =
+  combos
+  |> String.split("\n", trim: true)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def check_fit("", _) do
+    true
+  end
+
+  def check_fit(combo, towels) do
+    towels
+    |> Enum.filter(&String.starts_with?(combo, &1))
+    |> Enum.map(&String.replace_leading(combo, &1, ""))
+    |> Enum.any?(&check_fit(&1, towels))
+  end
+end
+
+combos
+|> Enum.filter(&Part1.check_fit(&1, towels))
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def check_fit("", _) do
+    1
+  end
+
+  def check_fit(combo, towels) do
+    case :ets.lookup(:memo, combo) do
+      [{_, result}] ->
+        result
+
+      [] ->
+        result =
+          towels
+          |> Enum.filter(&String.starts_with?(combo, &1))
+          |> Enum.map(&String.replace_prefix(combo, &1, ""))
+          |> Enum.map(&check_fit(&1, towels))
+          |> Enum.sum()
+
+        :ets.insert(:memo, {combo, result})
+        result
+    end
+  end
+end
+
+if :ets.whereis(:memo) == :undefined do
+  :ets.new(:memo, [:set, :public, :named_table])
+end
+
+result =
+  combos
+  |> Enum.map(&Part2.check_fit(&1, towels))
+  |> Enum.sum()
+
+:ets.delete(:memo)
+
+result
+```
