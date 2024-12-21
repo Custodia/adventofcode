@@ -1,0 +1,153 @@
+# 🎄 Year 2024 🔔 Day 18
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+coords =
+  File.read!("#{__DIR__}/../../../inputs/2024/day18.txt")
+  # """
+  # 5,4
+  # 4,2
+  # 4,5
+  # 3,0
+  # 2,1
+  # 6,3
+  # 2,4
+  # 1,5
+  # 0,6
+  # 3,3
+  # 2,6
+  # 5,1
+  # 1,2
+  # 5,5
+  # 2,5
+  # 6,5
+  # 1,4
+  # 0,4
+  # 6,4
+  # 1,1
+  # 6,1
+  # 1,0
+  # 0,5
+  # 1,6
+  # 2,0
+  # """
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.split(",")
+    |> Enum.map(&String.to_integer/1)
+    |> List.to_tuple()
+  end)
+
+p1_limit = 1024
+{max_x, max_y} = {70, 70}
+{start_x, start_y} = {0, 0}
+{end_x, end_y} = {max_x, max_y}
+
+p1_coords = coords |> Enum.take(p1_limit)
+
+empty_map_array =
+  List.duplicate(List.duplicate(nil, max_y + 1), max_x + 1)
+  |> Enum.map(&Arrays.new/1)
+  |> Arrays.new()
+
+p1_map_array =
+  empty_map_array
+  |> then(
+    &Enum.reduce(p1_coords, &1, fn {x, y}, array_map ->
+      put_in(array_map[x][y], :er)
+    end)
+  )
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def djikstra(map_array, nodes_to_visit) when nodes_to_visit == %{} do
+    map_array
+  end
+
+  def djikstra(map_array, nodes_to_visit) do
+    {{x, y}, score} =
+      next_node =
+      nodes_to_visit
+      |> Enum.min_by(&elem(&1, 1))
+
+    adjacent_nodes =
+      get_adjacent_nodes(next_node, map_array)
+
+    nodes_to_visit =
+      Enum.reduce(adjacent_nodes, nodes_to_visit, fn {coord, score}, nodes_to_visit ->
+        Map.update(nodes_to_visit, coord, score, fn current_score ->
+          min(current_score, score)
+        end)
+      end)
+      |> Map.delete({x, y})
+
+    map_array = put_in(map_array[x][y], score)
+    djikstra(map_array, nodes_to_visit)
+  end
+
+  def get_adjacent_nodes({{x, y}, score}, map_array) do
+    {max_x, max_y} = {Arrays.size(map_array) - 1, Arrays.size(map_array[0]) - 1}
+
+    [
+      {{x, y - 1}, score + 1},
+      {{x + 1, y}, score + 1},
+      {{x, y + 1}, score + 1},
+      {{x - 1, y}, score + 1}
+    ]
+    |> Enum.filter(fn {{x, y}, _score} ->
+      coords_in_map = x >= 0 and y >= 0 and x <= max_x and y <= max_y
+      coords_in_map and map_array[x][y] == nil
+    end)
+  end
+end
+
+map_array = p1_map_array
+result = Part1.djikstra(map_array, %{{start_x, start_y} => 0})
+result[end_x][end_y]
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def binary_search(map_array, coords) do
+    binary_search(map_array, coords, 0, Enum.count(coords))
+  end
+
+  def binary_search(_map_array, coords, good_i, bad_i) when good_i + 1 == bad_i do
+    coords |> Enum.at(bad_i) |> Tuple.to_list() |> Enum.join(",")
+  end
+
+  def binary_search(map_array, coords, good_i, bad_i) do
+    {end_x, end_y} = {Arrays.size(map_array) - 1, Arrays.size(map_array[0]) - 1}
+    check_i = good_i + div(bad_i - good_i, 2)
+
+    result =
+      coords
+      |> Enum.take(check_i + 1)
+      |> Enum.reduce(map_array, fn {x, y}, map_array ->
+        put_in(map_array[x][y], :er)
+      end)
+      |> Part1.djikstra(%{{0, 0} => 0})
+
+    if result[end_x][end_y] == nil do
+      binary_search(map_array, coords, good_i, check_i)
+    else
+      binary_search(map_array, coords, check_i, bad_i)
+    end
+  end
+end
+
+Part2.binary_search(map_array, coords)
+```
