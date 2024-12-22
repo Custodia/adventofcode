@@ -1,0 +1,212 @@
+# 🎄 Year 2024 🔔 Day 21
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+defmodule Helper do
+  @move_priority String.graphemes("<v^>")
+  @char_to_move %{
+    "^" => {0, -1},
+    ">" => {1, 0},
+    "v" => {0, 1},
+    "<" => {-1, 0},
+    "A" => {0, 0}
+  }
+
+  def generate_navigations(keypad) do
+    {max_x, max_y} = {Arrays.size(keypad) - 1, Arrays.size(keypad[0]) - 1}
+
+    keys = for x <- 0..max_x, y <- 0..max_y, keypad[x][y] != nil, do: {x, y, keypad[x][y]}
+
+    for key1 <- keys,
+        key2 <- keys do
+      {x1, y1, e1} = key1
+      {x2, y2, e2} = key2
+
+      c1 =
+        if(x1 < x2, do: List.duplicate(">", x2 - x1), else: List.duplicate("<", x1 - x2))
+        |> Enum.join("")
+
+      c2 =
+        if(y1 < y2, do: List.duplicate("v", y2 - y1), else: List.duplicate("^", y1 - y2))
+        |> Enum.join("")
+
+      paths =
+        ["#{c1}#{c2}A", "#{c2}#{c1}A"]
+        |> Enum.uniq()
+        |> Enum.reject(fn chars ->
+          chars
+          |> String.graphemes()
+          |> Enum.scan({x1, y1}, fn char, {x, y} ->
+            {xm, ym} = @char_to_move[char]
+            {x + xm, y + ym}
+          end)
+          |> Enum.map(fn {x, y} -> keypad[x][y] end)
+          |> then(&Enum.any?(&1, fn e -> e == nil end))
+        end)
+
+      optimal_path =
+        paths
+        |> Enum.min_by(fn <<c::binary-size(1)>> <> _ ->
+          Enum.find_index(@move_priority, fn e -> e == c end)
+        end)
+
+      {[e1, e2], optimal_path}
+    end
+    |> Map.new()
+  end
+end
+```
+
+```elixir
+instructions =
+  File.read!("#{__DIR__}/../../../inputs/2024/day21.txt")
+  |> String.split("\n", trim: true)
+
+digit_keypad =
+  [
+    ["7", "8", "9"],
+    ["4", "5", "6"],
+    ["1", "2", "3"],
+    [nil, "0", "A"]
+  ]
+  |> List.zip()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.map(&Arrays.new/1)
+  |> Arrays.new()
+
+arrow_keypad =
+  [
+    [nil, "^", "A"],
+    ["<", "v", ">"]
+  ]
+  |> List.zip()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.map(&Arrays.new/1)
+  |> Arrays.new()
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  @navigations Map.merge(
+                 Helper.generate_navigations(digit_keypad),
+                 Helper.generate_navigations(arrow_keypad)
+               )
+
+  def solve(sequence, 0) do
+    sequence
+  end
+
+  def solve(sequence, level) do
+    new_sequence =
+      ("A" <> sequence)
+      |> String.graphemes()
+      |> Enum.chunk_every(2, 1, :discard)
+      |> Enum.map(fn chunk -> Map.fetch!(@navigations, chunk) end)
+      |> Enum.join()
+
+    solve(new_sequence, level - 1)
+  end
+end
+
+instructions
+|> Enum.map(fn sequence ->
+  lenght_of_shortest = Part1.solve(sequence, 3) |> String.length()
+
+  numeric_part =
+    Regex.run(~r/(\d{3})A/, sequence, capture: :all_but_first)
+    |> then(fn [e] -> String.to_integer(e) end)
+
+  lenght_of_shortest * numeric_part
+end)
+|> Enum.sum()
+|> tap(fn result -> if result == 212_488, do: IO.puts("Correct 🎉"), else: IO.puts("Wrong") end)
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  @navigations Map.merge(
+                 Helper.generate_navigations(digit_keypad),
+                 Helper.generate_navigations(arrow_keypad)
+               )
+
+  def solve(sequence, 0) do
+    sequence |> String.length()
+  end
+
+  def solve(sequence, level) do
+    sequence
+    |> get_portion_frequencies()
+    |> Enum.map(fn {sequence, count} ->
+      case :ets.lookup(:memo, {sequence, level}) do
+        [{_, result}] ->
+          result * count
+
+        [] ->
+          next_sequence = solve_part(sequence)
+          result = solve(next_sequence, level - 1)
+          :ets.insert(:memo, {{sequence, level}, result})
+          result * count
+      end
+    end)
+    |> Enum.sum()
+  end
+
+  def solve_part(sequence) do
+    ("A" <> sequence)
+    |> String.graphemes()
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn chunk -> Map.fetch!(@navigations, chunk) end)
+    |> Enum.join()
+  end
+
+  def get_portion_frequencies(sequence) do
+    sequence
+    |> String.graphemes()
+    |> Enum.reduce([[]], fn c, [head | tail] ->
+      if c == "A" do
+        [[], Enum.reverse([c | head]) | tail]
+      else
+        [[c | head] | tail]
+      end
+    end)
+    |> Enum.drop(1)
+    |> Enum.map(&Enum.join(&1, ""))
+    |> Enum.frequencies()
+  end
+end
+
+if :ets.whereis(:memo) == :undefined do
+  :ets.new(:memo, [:set, :public, :named_table])
+end
+
+result =
+  instructions
+  |> Enum.map(fn sequence ->
+    lenght_of_shortest = Part2.solve(sequence, 26)
+
+    numeric_part =
+      Regex.run(~r/(\d{3})A/, sequence, capture: :all_but_first)
+      |> then(fn [e] -> String.to_integer(e) end)
+
+    lenght_of_shortest * numeric_part
+  end)
+  |> Enum.sum()
+
+:ets.delete(:memo)
+
+result
+|> tap(fn result ->
+  if result == 258_263_972_600_402, do: IO.puts("Correct 🎉"), else: IO.puts("Wrong")
+end)
+```
