@@ -1,0 +1,99 @@
+# 🎄 Year 2024 🔔 Day 23
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+connections =
+  File.read!("#{__DIR__}/../../../inputs/2024/day23.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line -> line |> String.split("-", trim: true) |> List.to_tuple() end)
+
+connection_map =
+  connections
+  |> Enum.flat_map(fn {a, b} -> [{a, b}, {b, a}] end)
+  |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  |> Enum.map(fn {k, vs} -> {k, MapSet.new(vs)} end)
+  |> Map.new()
+```
+
+## Part 1
+
+```elixir
+connections
+|> Enum.map(fn {a, b} ->
+  a_matches = String.starts_with?(a, "t")
+  b_matches = String.starts_with?(b, "t")
+  set_a = Map.fetch!(connection_map, a)
+  set_b = Map.fetch!(connection_map, b)
+
+  MapSet.intersection(set_a, set_b)
+  |> Enum.filter(fn c ->
+    a_matches or b_matches or String.starts_with?(c, "t")
+  end)
+  |> Enum.count()
+end)
+|> Enum.sum()
+|> div(3)
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def solve(network, possibilities, connection_map)
+
+  def solve(network, [], _connection_map) do
+    network
+  end
+
+  def solve(network, possibilities, connection_map) do
+    case :ets.lookup(:memo, network) do
+      [{_, result}] ->
+        result
+
+      [] ->
+        max_result =
+          possibilities
+          |> Enum.map(fn connection_to_add ->
+            new_network = [connection_to_add | network] |> Enum.sort()
+
+            new_possibilities =
+              MapSet.intersection(
+                MapSet.new(possibilities) |> MapSet.delete(connection_to_add),
+                Map.fetch!(connection_map, connection_to_add)
+              )
+              |> Enum.to_list()
+
+            solve(new_network, new_possibilities, connection_map)
+          end)
+          |> Enum.max_by(fn network -> Enum.count(network) end)
+
+        :ets.insert(:memo, {network, max_result})
+        max_result
+    end
+  end
+end
+
+if :ets.whereis(:memo) == :undefined do
+  :ets.new(:memo, [:set, :public, :named_table])
+end
+
+result =
+  connection_map
+  |> Enum.map(fn {connection, possibilities} ->
+    Part2.solve([connection], possibilities |> Enum.to_list(), connection_map)
+  end)
+  |> Enum.uniq()
+  |> Enum.max_by(fn connection -> Enum.count(connection) end)
+  |> Enum.join(",")
+
+:ets.delete(:memo)
+
+result
+```
