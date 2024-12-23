@@ -1,0 +1,79 @@
+# 🎄 Year 2024 🔔 Day 22
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"}
+])
+```
+
+## Setup
+
+```elixir
+numbers =
+  File.read!("#{__DIR__}/../../../inputs/2024/day22.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+## Part 1
+
+```elixir
+import Bitwise, only: [bxor: 2]
+
+numbers
+|> Enum.map(fn number ->
+  1..2000
+  |> Enum.reduce(number, fn _, number ->
+    intermediate = number * 64
+    number = number |> bxor(intermediate) |> Integer.mod(16_777_216)
+    intermediate = div(number, 32)
+    number = number |> bxor(intermediate) |> Integer.mod(16_777_216)
+    intermediate = number * 2048
+    _number = number |> bxor(intermediate) |> Integer.mod(16_777_216)
+  end)
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def get_possible_buys(changes, buys \\ %{})
+
+  def get_possible_buys([_, _, _], buys) do
+    buys
+  end
+
+  def get_possible_buys([{a, _ae}, {b, be}, {c, ce}, {d, de} | tail], buys) do
+    buys = Map.put_new(buys, {a, b, c, d}, de)
+    get_possible_buys([{b, be}, {c, ce}, {d, de} | tail], buys)
+  end
+end
+
+result =
+  numbers
+  |> Enum.map(fn number ->
+    0..2000
+    |> Enum.scan(number, fn i, number ->
+      if i == 0 do
+        number
+      else
+        intermediate = number * 64
+        number = number |> bxor(intermediate) |> Integer.mod(16_777_216)
+        intermediate = div(number, 32)
+        number = number |> bxor(intermediate) |> Integer.mod(16_777_216)
+        intermediate = number * 2048
+        _number = number |> bxor(intermediate) |> Integer.mod(16_777_216)
+      end
+    end)
+    |> Enum.map(&Integer.mod(&1, 10))
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [a, b] -> {b - a, b} end)
+    |> Part2.get_possible_buys()
+  end)
+  |> Enum.concat()
+  |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  |> Enum.map(fn {k, vs} -> {k, Enum.sum(vs)} end)
+  |> Enum.max_by(fn {_k, v} -> v end)
+```
