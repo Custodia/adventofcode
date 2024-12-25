@@ -1,0 +1,42 @@
+# 🎄 Year 2024 🔔 Day 25
+
+## Setup
+
+```elixir
+{locks, keys} =
+  File.read!("#{__DIR__}/../../../inputs/2024/day25.txt")
+  |> String.split("\n\n", trim: true)
+  |> Enum.map(fn lock_or_key ->
+    lock_or_key
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.graphemes/1)
+    |> Enum.zip()
+    |> Enum.map(&Tuple.to_list/1)
+  end)
+  |> Enum.reduce({[], []}, fn lock_or_key, {locks, keys} ->
+    top_left_char = lock_or_key |> Enum.at(0) |> Enum.at(0)
+
+    counts =
+      lock_or_key
+      |> Enum.map(fn row -> Enum.count(row, &(&1 == "#")) - 1 end)
+
+    if top_left_char == "#" do
+      {[counts | locks], keys}
+    else
+      {locks, [counts | keys]}
+    end
+  end)
+```
+
+## Part 1
+
+```elixir
+locks
+|> Enum.map(fn lock ->
+  Enum.count(keys, fn key ->
+    Enum.zip(lock, key)
+    |> Enum.all?(fn {a, b} -> a + b <= 5 end)
+  end)
+end)
+|> Enum.sum()
+```
