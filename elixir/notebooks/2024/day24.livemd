@@ -1,0 +1,332 @@
+# 🎄 Year 2024 🔔 Day 24
+
+```elixir
+Mix.install([
+  {:arrays, "~> 2.1"},
+  {:kino, "~> 0.14.2"}
+])
+```
+
+## Setup
+
+```elixir
+[start_values, instructions] =
+  File.read!("#{__DIR__}/../../../inputs/2024/day24.txt")
+  |> String.split("\n\n", trim: true)
+
+start_values =
+  start_values
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    [signal, value] = String.split(line, ": ", trim: true)
+
+    {signal, String.to_integer(value)}
+  end)
+  |> Map.new()
+
+instructions =
+  instructions
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    [operation, result_signal] = String.split(line, " -> ", trim: true)
+    [a, b, c] = String.split(operation, " ", trim: true)
+
+    if String.starts_with?(a, "y") do
+      {c, b, a, result_signal}
+    else
+      {a, b, c, result_signal}
+    end
+  end)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  import Bitwise, only: [bor: 2, band: 2, bxor: 2]
+
+  def solve(known_signals, instructions, target_signals) do
+    if Enum.all?(target_signals, &Map.has_key?(known_signals, &1)) do
+      known_signals
+    else
+      {known_signals, instructions} =
+        instructions
+        |> Enum.filter(fn {a, _operation, b, _result_signal} ->
+          Map.has_key?(known_signals, a) and Map.has_key?(known_signals, b)
+        end)
+        |> Enum.reduce({known_signals, instructions}, fn instruction,
+                                                         {known_signals, instructions} ->
+          instructions = Enum.reject(instructions, fn e -> e == instruction end)
+          {target_signal, result} = run_instruction(instruction, known_signals)
+          known_signals = Map.put(known_signals, target_signal, result)
+          {known_signals, instructions}
+        end)
+
+      solve(known_signals, instructions, target_signals)
+    end
+  end
+
+  def run_instruction({a_signal, operation, b_signal, target_signal}, known_signals) do
+    a = Map.fetch!(known_signals, a_signal)
+    b = Map.fetch!(known_signals, b_signal)
+
+    case operation do
+      "OR" -> {target_signal, bor(a, b)}
+      "AND" -> {target_signal, band(a, b)}
+      "XOR" -> {target_signal, bxor(a, b)}
+    end
+  end
+end
+
+all_signals =
+  instructions
+  |> Enum.flat_map(fn {a, _, b, c} -> [a, b, c] end)
+  |> Enum.uniq()
+
+target_signals =
+  all_signals
+  |> Enum.filter(&String.starts_with?(&1, "z"))
+  |> Enum.sort(:desc)
+
+Part1.solve(start_values, instructions, target_signals)
+|> then(fn result ->
+  target_signals
+  |> Enum.map(fn e -> Map.fetch!(result, e) end)
+  |> Integer.undigits(2)
+end)
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def get_dependency_graph(instructions) do
+    if :ets.whereis(:memo) == :undefined do
+      :ets.new(:memo, [:set, :public, :named_table])
+    end
+
+    result =
+      instructions
+      |> Enum.map(&get_dependencies(instructions, elem(&1, 3)))
+      |> Map.new()
+
+    :ets.delete(:memo)
+
+    result
+  end
+
+  defp get_dependencies(instructions, signal) do
+    is_input = String.starts_with?(signal, "x") or String.starts_with?(signal, "y")
+
+    if is_input do
+      {signal, []}
+    else
+      case :ets.lookup(:memo, signal) do
+        [{_, result}] ->
+          {signal, result}
+
+        [] ->
+          instructions
+          |> Enum.find_value(fn {a, _op, b, target_signal} ->
+            if target_signal == signal do
+              deps_a = get_dependencies(instructions, a) |> elem(1)
+              deps_b = get_dependencies(instructions, b) |> elem(1)
+              result = [a | deps_a] ++ [b | deps_b]
+              :ets.insert(:memo, {signal, result})
+              {signal, result}
+            else
+              nil
+            end
+          end)
+      end
+    end
+  end
+
+  def sort_by_dependency_graph(instructions, dependency_graph) do
+    Enum.sort(instructions, fn {_, _, _, a}, {_, _, _, b} ->
+      !(Map.fetch!(dependency_graph, a) |> Enum.any?(fn e -> e == b end))
+    end)
+  end
+
+  def swap_signals(instructions, signal_a, signal_b) do
+    Enum.map(instructions, fn {a, op, b, target_signal} ->
+      case target_signal do
+        ^signal_a -> {a, op, b, signal_b}
+        ^signal_b -> {a, op, b, signal_a}
+        _ -> {a, op, b, target_signal}
+      end
+    end)
+  end
+end
+
+dependency_graph = Part2.get_dependency_graph(instructions)
+```
+
+```elixir
+IO.puts("Incorrect z assigns")
+
+incorrect_z_assigns =
+  instructions
+  |> Enum.filter(fn {_, _, _, target_signal} -> String.starts_with?(target_signal, "z") end)
+  |> Enum.filter(fn {_, operation, _, target_signal} ->
+    target_signal != "z45" and operation != "XOR"
+  end)
+  |> Enum.sort_by(&elem(&1, 3))
+  |> Kino.inspect(limit: :infinity)
+
+IO.puts("Incorrect XORs")
+
+incorrect_xors =
+  instructions
+  |> Enum.filter(fn {a, op, _, target_signal} ->
+    !String.starts_with?(a, "x") and !String.starts_with?(target_signal, "z") and op == "XOR"
+  end)
+  |> Kino.inspect(limit: :infinity)
+
+IO.puts("XOR investigation")
+
+instructions
+|> Enum.filter(fn {a, _, b, _} ->
+  a == "sjd" or b == "sjd"
+end)
+|> Kino.inspect(limit: :infinity)
+
+Map.fetch!(dependency_graph, "mvb")
+|> Enum.sort()
+|> Kino.inspect(limit: :infinity)
+
+IO.puts("Need to swap mvb with z08")
+
+instructions
+|> Enum.filter(fn {a, _, b, _} ->
+  a == "fmm" or b == "fmm"
+end)
+|> Kino.inspect(limit: :infinity)
+
+Map.fetch!(dependency_graph, "wss")
+|> Enum.sort()
+|> Kino.inspect(limit: :infinity)
+
+IO.puts("Need to swap wss with z18")
+
+instructions
+|> Enum.filter(fn {a, _, b, _} ->
+  a == "qmd" or b == "qmd"
+end)
+|> Kino.inspect(limit: :infinity)
+
+Map.fetch!(dependency_graph, "bmn")
+|> Enum.sort()
+|> Kino.inspect(limit: :infinity)
+
+IO.puts("Need to swap bmn with z23")
+
+instructions =
+  instructions
+  |> Part2.swap_signals("mvb", "z08")
+  |> Part2.swap_signals("wss", "z18")
+  |> Part2.swap_signals("bmn", "z23")
+
+instructions
+|> Enum.filter(fn instruction ->
+  {a, op, _b, target_signal} = instruction
+  is_input_gate = String.starts_with?(a, "x")
+  is_starting_gate = a == "x00"
+
+  cond do
+    op == "XOR" and is_input_gate and !is_starting_gate ->
+      !Enum.any?(instructions, fn {a, op, b, _target_signal} ->
+        op == "XOR" and (a == target_signal or b == target_signal)
+      end)
+
+    op == "AND" and !is_starting_gate ->
+      !Enum.any?(instructions, fn {a, op, b, _target_signal} ->
+        op == "OR" and (a == target_signal or b == target_signal)
+      end)
+
+    true ->
+      false
+  end
+end)
+|> Kino.inspect(limit: :infinity)
+
+IO.puts("Need to swap rds and jss")
+
+instructions =
+  instructions
+  |> Part2.swap_signals("rds", "jss")
+
+:ok
+```
+
+```elixir
+defmodule Part2Tester do
+  def test(instructions, target_signals, first_n, second_n) do
+    known_signals =
+      Map.merge(
+        number_to_inputs(first_n, "x"),
+        number_to_inputs(second_n, "y")
+      )
+
+    Part1.solve(known_signals, instructions, target_signals)
+  end
+
+  defp number_to_inputs(number, lead_char) do
+    number
+    |> Integer.to_string(2)
+    |> String.pad_leading(45, "0")
+    |> String.graphemes()
+    |> Enum.reverse()
+    |> Enum.with_index(fn e, i ->
+      is = String.pad_leading("#{i}", 2, "0")
+      {"#{lead_char}#{is}", String.to_integer(e)}
+    end)
+    |> Map.new()
+  end
+end
+
+3..44
+|> Enum.map(fn n ->
+  max_input = List.duplicate(1, n) |> Integer.undigits(2)
+  first_number = :rand.uniform(max_input)
+  second_number = :rand.uniform(max_input)
+
+  expected = first_number + second_number
+
+  result =
+    Part2Tester.test(instructions, target_signals, first_number, second_number)
+    |> then(fn result ->
+      target_signals
+      |> Enum.map(fn e -> Map.fetch!(result, e) end)
+      |> Integer.undigits(2)
+    end)
+
+  {expected, result}
+end)
+|> tap(fn results ->
+  if Enum.all?(results, fn {expected, result} -> expected == result end) do
+    IO.puts("It works 🎉")
+  else
+    results
+    |> Enum.filter(fn {expected, result} -> expected != result end)
+    |> Enum.each(fn {expected, result} ->
+      IO.puts("Expected #{expected} but got #{result}")
+    end)
+  end
+end)
+```
+
+```elixir
+[
+  "mvb",
+  "z08",
+  "wss",
+  "z18",
+  "bmn",
+  "z23",
+  "rds",
+  "jss"
+]
+|> Enum.sort()
+|> Enum.join(",")
+```
