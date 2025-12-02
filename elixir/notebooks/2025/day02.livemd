@@ -1,0 +1,65 @@
+# 🎄 Year 2025 🔔 Day 02
+
+## Section
+
+```elixir
+ranges =
+  File.read!("#{__DIR__}/../../../inputs/2025/day02.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.join("")
+  |> String.split(",", trim: true)
+  |> Enum.map(fn range ->
+    String.split(range, "-", trim: true)
+    |> Enum.map(&String.to_integer/1)
+  end)
+```
+
+## Part 1
+
+```elixir
+ranges
+|> Enum.flat_map(fn [r_start, r_end] ->
+  r_start..r_end
+  |> Enum.map(&Integer.to_string/1)
+  |> Enum.filter(&(rem(String.length(&1), 2) == 0))
+  |> Enum.map(&String.split_at(&1, div(String.length(&1), 2)))
+  |> Enum.filter(fn {a, b} -> a == b end)
+  |> Enum.map(fn {a, b} -> String.to_integer("#{a}#{b}") end)
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Helper do
+  def divisible_by(1), do: []
+
+  def divisible_by(n) do
+    1..div(n, 2) |> Enum.filter(&(rem(n, &1) == 0))
+  end
+
+  def split_string_every(string, n) do
+    string
+    |> String.graphemes()
+    |> Enum.chunk_every(n)
+    |> Enum.map(fn chunk -> Enum.join(chunk, "") end)
+  end
+end
+
+ranges
+|> Enum.flat_map(fn [r_start, r_end] ->
+  r_start..r_end
+  |> Enum.map(fn n ->
+    ns = Integer.to_string(n)
+
+    Helper.divisible_by(String.length(ns))
+    |> Enum.map(&Helper.split_string_every(ns, &1))
+  end)
+end)
+|> Enum.filter(fn combinations ->
+  Enum.any?(combinations, fn [head | tail] -> Enum.all?(tail, &(&1 == head)) end)
+end)
+|> Enum.map(fn [combination | _] -> Enum.join(combination) |> String.to_integer() end)
+|> Enum.sum()
+```

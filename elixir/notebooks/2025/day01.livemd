@@ -1,0 +1,39 @@
+# 🎄 Year 2024 🔔 Day 01
+
+## Section
+
+```elixir
+steps =
+  File.read!("#{__DIR__}/../../../inputs/2025/day01.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split_at(&1, 1))
+  |> Enum.map(fn {dir, n} -> {dir, String.to_integer(n)} end)
+```
+
+## Part 1
+
+```elixir
+Enum.scan(steps, 50, fn {dir, n}, acc ->
+  new_n = if dir == "L", do: acc - n, else: acc + n
+  new_n = Integer.mod(new_n, 100)
+end)
+|> Enum.count(&(&1 === 0))
+```
+
+## Part 2
+
+```elixir
+Enum.scan(steps, {0, 50}, fn {dir, n}, {_, acc} ->
+  new_n = if dir == "L", do: acc - n, else: acc + n
+
+  zero_count = div(abs(new_n), 100)
+  zero_count = if new_n == 0, do: zero_count + 1, else: zero_count
+  zero_count = if new_n < 0 && acc > 0, do: zero_count + 1, else: zero_count
+
+  new_n = Integer.mod(new_n, 100)
+
+  {zero_count, new_n}
+end)
+|> Enum.map(&elem(&1, 0))
+|> Enum.sum()
+```
