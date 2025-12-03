@@ -1,0 +1,45 @@
+# 🎄 Year 2025 🔔 Day 03
+
+## Section
+
+```elixir
+batteries =
+  File.read!("#{__DIR__}/../../../inputs/2025/day03.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.graphemes()
+    |> Enum.map(&String.to_integer/1)
+  end)
+```
+
+## Part 1
+
+```elixir
+batteries
+|> Enum.map(fn battery ->
+  max_first = battery |> Enum.take(Enum.count(battery) - 1) |> Enum.max()
+  max_second = battery |> Enum.drop_while(&(&1 != max_first)) |> Enum.drop(1) |> Enum.max()
+  Integer.undigits([max_first, max_second])
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Helper do
+  def recursive_solve(battery, solution \\ [], remaining \\ 12)
+  def recursive_solve(_, solution, 0), do: Integer.undigits(Enum.reverse(solution))
+  def recursive_solve(battery, solution, remaining) do
+    max_n = battery |> Enum.take(Enum.count(battery) - (remaining - 1)) |> Enum.max()
+    remaining_battery = battery |> Enum.drop_while(&(&1 != max_n)) |> Enum.drop(1)
+
+    recursive_solve(remaining_battery, [max_n | solution], remaining - 1)
+  end
+end
+
+batteries
+|> Enum.map(&Helper.recursive_solve/1)
+|> Enum.sum()
+```
