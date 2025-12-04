@@ -1,0 +1,79 @@
+# 🎄 Year 2025 🔔 Day 04
+
+## Section
+
+```elixir
+rows = File.read!("#{__DIR__}/../../../inputs/2025/day04.txt") |> String.split("\n", trim: true)
+{min_x, min_y} = {0, 0}
+max_x = Enum.at(rows, 0) |> String.graphemes() |> Enum.count() |> then(&(&1 - 1))
+max_y = Enum.count(rows) |> then(&(&1 - 1))
+max_coords = {max_x, max_y}
+
+map =
+  rows
+  |> Enum.with_index(fn row, y ->
+    row
+    |> String.graphemes()
+    |> Enum.with_index(fn e, x -> {{x, y}, e} end)
+  end)
+  |> Enum.concat()
+  |> Map.new()
+```
+
+```elixir
+defmodule Helper do
+  def get_adjacents(map, coords, max_coords)
+  def get_adjacents(map, {x, y}, {max_x, max_y}) do
+    for new_x <- (x-1)..(x+1),
+        new_y <- (y-1)..(y+1),
+        (x != new_x || y != new_y) && new_x >=0 && new_y >= 0 && new_x <= max_x && new_y <= max_y do
+      {new_x, new_y}
+    end
+    |> Enum.map(&Map.fetch!(map, &1))
+  end
+
+  def can_remove(map, coords, max_coords) do
+    get_adjacents(map, coords, max_coords)
+    |> Enum.count(fn e -> e == "@" end)
+    |> then(&(&1 < 4))
+  end
+
+  def recursively_remove(map, max_coords) do
+    to_remove =
+      map
+      |> Enum.filter(fn {_coords, char} -> char == "@" end)
+      |> Enum.filter(fn {coords, _char} -> Helper.can_remove(map, coords, max_coords) end)
+      |> Enum.map(&elem(&1, 0))
+
+    case to_remove do
+      [] -> map
+      to_remove ->
+        Enum.reduce(to_remove, map, fn e, acc ->
+          Map.update!(acc, e, fn _ -> "." end)
+        end)
+        |> Map.new()
+        |> recursively_remove(max_coords)
+    end
+  end
+end
+```
+
+## Part 1
+
+```elixir
+map
+|> Enum.filter(fn {_coords, char} -> char == "@" end)
+|> Enum.filter(fn {coords, _char} -> Helper.can_remove(map, coords, max_coords) end)
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+Helper.recursively_remove(map, max_coords)
+|> Enum.filter(fn {coords, char} ->
+  og_char = Map.fetch!(map, coords)
+  og_char != char
+end)
+|> Enum.count()
+```
