@@ -1,0 +1,59 @@
+# 🎄 Year 2025 🔔 Day 05
+
+## Section
+
+```elixir
+[fresh_ranges, available_ids] =
+  File.read!("#{__DIR__}/../../../inputs/2025/day05.txt")
+  |> String.split("\n\n", trim: true)
+
+fresh_ranges =
+  fresh_ranges
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    [r_start, r_end] = String.split(line, "-") |> Enum.map(&String.to_integer/1)
+    r_start..r_end
+  end)
+
+available_ids =
+  available_ids
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+## Part 1
+
+```elixir
+available_ids
+|> Enum.filter(fn id -> Enum.any?(fresh_ranges, fn range -> id in range end) end)
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+defmodule Helper do
+  def merge_sorted_ranges(ranges) do
+    merge_sorted_ranges(ranges, [])
+  end
+
+  defp merge_sorted_ranges([], result), do: Enum.reverse(result)
+  defp merge_sorted_ranges([range], result), do: Enum.reverse([range | result])
+  defp merge_sorted_ranges([head, next | ranges], result) do
+    fr_start..fr_end//1 = head
+    sr_start..sr_end//1 = next
+    if fr_end + 1 >= sr_start do
+      merged_range = fr_start..max(fr_end, sr_end)
+      merge_sorted_ranges([merged_range | ranges], result)
+    else
+      merge_sorted_ranges([next | ranges], [head | result])
+    end
+  end
+end
+
+fresh_ranges
+|> Enum.sort_by(fn r_start.._r_end//1 -> r_start end, :asc)
+|> Helper.merge_sorted_ranges()
+|> Enum.map(&Enum.count/1)
+|> Enum.sum()
+```
