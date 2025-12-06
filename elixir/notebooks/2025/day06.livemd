@@ -1,0 +1,65 @@
+# 🎄 Year 2025 🔔 Day 06
+
+## Section
+
+```elixir
+rows =
+  File.read!("#{__DIR__}/../../../inputs/2025/day06.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, " ", trim: true))
+  |> Enum.zip()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.map(&Enum.reverse/1)
+  |> then(fn row ->
+    Enum.map(row, fn [operator | tail] -> {operator, Enum.map(tail, &String.to_integer/1)} end)
+  end)
+```
+
+## Part 1
+
+```elixir
+rows
+|> Enum.map(fn {operator, ns} ->
+  case operator do
+    "*" -> Enum.product(ns)
+    "+" -> Enum.sum(ns)
+  end
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+transposed_rows =
+  File.read!("#{__DIR__}/../../../inputs/2025/day06.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.graphemes/1)
+  |> Enum.zip()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.map(&Enum.reverse/1)
+  |> Enum.map(&Enum.join/1)
+
+transposed_rows
+|> Enum.filter(fn row -> row |> String.trim() |> String.length() |> then(&(&1 > 0)) end)
+|> Enum.map(fn <<operator :: binary-size(1)>> <> rest ->
+  num = String.reverse(rest) |> String.replace(" ", "") |> String.to_integer()
+  {operator, num}
+end)
+|> then(fn [{operator, num} | tail] ->
+  Enum.reduce(tail, [{operator, [num]}], fn {op, num}, [{prev_op, ns} | acc_tail] ->
+    if op == " " do
+      [{prev_op, [num | ns]} | acc_tail]
+    else
+      [{op, [num]}, {prev_op, ns} | acc_tail]
+    end
+  end)
+end)
+|> Enum.map(fn {operator, ns} ->
+  case operator do
+    "+" -> Enum.sum(ns)
+    "*" -> Enum.product(ns)
+  end
+end)
+|> Enum.sum()
+```
