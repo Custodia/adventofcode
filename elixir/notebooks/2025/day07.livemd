@@ -1,0 +1,57 @@
+# 🎄 Year 2025 🔔 Day 07
+
+## Section
+
+```elixir
+input =
+  File.read!("#{__DIR__}/../../../inputs/2025/day07.txt")
+  |> String.split("\n", trim: true)
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.map(fn row -> row |> String.split("", trim: true) |> Enum.with_index() end)
+|> Enum.reduce({MapSet.new(), 0}, fn row, acc ->
+  Enum.reduce(row, acc, fn {c, i}, {beam_indexes, count} ->
+    case c do
+      "." -> {beam_indexes, count}
+      "S" ->
+        new_indexes = beam_indexes |> MapSet.put(i)
+        {new_indexes, count}
+      "^" ->
+        if MapSet.member?(beam_indexes, i) do
+          new_indexes = beam_indexes |> MapSet.delete(i) |> MapSet.put(i - 1) |> MapSet.put(i + 1)
+          {new_indexes, count + 1}
+        else
+          {beam_indexes, count}
+        end
+    end
+  end)
+end)
+```
+
+## Part 2
+
+```elixir
+input
+|> Enum.map(fn row -> row |> String.split("", trim: true) |> Enum.with_index() end)
+|> Enum.reduce(Map.new(), fn row, quantum_map ->
+  Enum.reduce(row, Map.new(), fn {c, i}, new_quantum_map ->
+    count = Map.get(quantum_map, i, 0)
+    case c do
+      "." ->
+        new_quantum_map
+        |> Map.update(i, count, &(&1 + count))
+      "S" ->
+        new_quantum_map |> Map.put(i, 1)
+      "^" ->
+        new_quantum_map
+        |> Map.update(i - 1, count, &(&1 + count))
+        |> Map.update(i + 1, count, &(&1 + count))
+    end
+  end)
+end)
+|> Enum.sum_by(&elem(&1, 1))
+```
