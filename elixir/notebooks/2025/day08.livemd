@@ -1,0 +1,163 @@
+# 🎄 Year 2025 🔔 Day 08
+
+## Section
+
+```elixir
+inputs =
+  File.read!("#{__DIR__}/../../../inputs/2025/day08.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> List.to_tuple()
+  end)
+```
+
+## Part 1
+
+```elixir
+defmodule Helper do
+  def get_pair_distances(list) do
+    get_pair_distances(list, [])
+  end
+
+  defp get_pair_distances([_head], result), do: Enum.concat(result)
+  defp get_pair_distances([{hx, hy, hz} = head | tail], result) do
+    new_results = Enum.map(tail, fn {ex, ey, ez} = e ->
+      squared_euclidean_distance =
+        Integer.pow(hx - ex, 2) + Integer.pow(hy - ey, 2) + Integer.pow(hz - ez, 2)
+      {head, e, squared_euclidean_distance}
+    end)
+    get_pair_distances(tail, [new_results | result])
+  end
+end
+```
+
+```elixir
+sorted_pair_distances =
+  inputs
+  |> Helper.get_pair_distances()
+  |> Enum.sort_by(&elem(&1, 2), :asc)
+
+coord_to_circuit_id =
+  inputs
+  |> Enum.with_index(fn coord, cid -> {coord, cid} end)
+  |> Map.new()
+
+circuit_id_to_coords =
+  inputs
+  |> Enum.with_index(fn coord, cid -> {cid, [coord]} end)
+  |> Map.new()
+
+circuit_id_to_size = Map.new()
+
+circuit_tracking = {coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size}
+
+{coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size} =
+  sorted_pair_distances
+  |> Enum.take(1000)
+  |> Enum.map(fn {fc, sc, _} -> {fc, sc} end)
+  |> Enum.reduce(circuit_tracking, fn {fc, sc}, {coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size} ->
+    fcid = Map.fetch!(coord_to_circuit_id, fc)
+    scid = Map.fetch!(coord_to_circuit_id, sc)
+  
+    if fcid == scid do
+      {coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size}
+    else
+      fcs = Map.get(circuit_id_to_size, fcid, 1)
+      scs = Map.get(circuit_id_to_size, scid, 1)
+  
+      {large_cid, small_cid} = if scs > fcs, do: {scid, fcid}, else: {fcid, scid}
+  
+      circuit_id_to_size =
+        circuit_id_to_size
+        |> Map.delete(small_cid)
+        |> Map.update(large_cid, 1 + small_cid, fn e -> e + small_cid end)
+  
+      {small_c_coords, circuit_id_to_coords} = Map.pop!(circuit_id_to_coords, small_cid)
+      circuit_id_to_coords =
+        Map.update!(circuit_id_to_coords, large_cid, fn large_c_coords -> Enum.concat(small_c_coords, large_c_coords) end)
+      
+      coord_to_circuit_id =
+        Enum.reduce(small_c_coords, coord_to_circuit_id, fn coord, coord_to_circuit_id ->
+          Map.put(coord_to_circuit_id, coord, large_cid)
+        end)
+  
+      {coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size}
+    end
+  end)
+
+circuit_id_to_coords
+|> Enum.map(&Enum.count(elem(&1, 1)))
+|> Enum.sort(:desc)
+|> Enum.take(3)
+|> Enum.product()
+```
+
+## Part 2
+
+```elixir
+sorted_pair_distances =
+  inputs
+  |> Helper.get_pair_distances()
+  |> Enum.sort_by(&elem(&1, 2), :asc)
+
+coord_to_circuit_id =
+  inputs
+  |> Enum.with_index(fn coord, cid -> {coord, cid} end)
+  |> Map.new()
+
+circuit_id_to_coords =
+  inputs
+  |> Enum.with_index(fn coord, cid -> {cid, [coord]} end)
+  |> Map.new()
+
+circuit_id_to_size = Map.new()
+
+circuit_tracking = {coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size}
+
+sorted_pair_distances
+|> Enum.map(fn {fc, sc, _} -> {fc, sc} end)
+|> Enum.reduce_while(circuit_tracking, fn {fc, sc}, {coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size} ->
+  fcid = Map.fetch!(coord_to_circuit_id, fc)
+  scid = Map.fetch!(coord_to_circuit_id, sc)
+
+  if fcid == scid do
+    {:cont, {coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size}}
+  else
+    fcs = Map.get(circuit_id_to_size, fcid, 1)
+    scs = Map.get(circuit_id_to_size, scid, 1)
+
+    {large_cid, small_cid} = if scs > fcs, do: {scid, fcid}, else: {fcid, scid}
+
+    circuit_id_to_size =
+      circuit_id_to_size
+      |> Map.delete(small_cid)
+      |> Map.update(large_cid, 1 + small_cid, fn e -> e + scs end)
+
+    {small_c_coords, circuit_id_to_coords} = Map.pop!(circuit_id_to_coords, small_cid)
+    circuit_id_to_coords =
+      Map.update!(circuit_id_to_coords, large_cid, fn large_c_coords -> Enum.concat(small_c_coords, large_c_coords) end)
+    
+    coord_to_circuit_id =
+      Enum.reduce(small_c_coords, coord_to_circuit_id, fn coord, coord_to_circuit_id ->
+        Map.put(coord_to_circuit_id, coord, large_cid)
+      end)
+
+    if Enum.count(circuit_id_to_coords) > 1 do
+      {:cont, {coord_to_circuit_id, circuit_id_to_coords, circuit_id_to_size}}
+    else
+      {:halt, {fc, sc}}
+    end
+  end
+end)
+|> tap(fn {fc, sc} -> 
+  sorted_pair_distances
+  |> Enum.with_index(fn {fc, sc, _dist}, i -> {fc, sc, i + 1} end)
+  |> Enum.find(fn {efc, esc, _i} -> efc == fc && esc == sc end)
+  |> elem(2)
+  |> then(&IO.puts("Match found after merging #{&1} coordinate pairs"))
+end)
+|> then(fn {{fx, _fy, _fz} = _fc, {sx, _sy, _sz} = _sc} -> fx * sx end)
+```
