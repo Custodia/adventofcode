@@ -1,0 +1,84 @@
+# 🎄 Year 2025 🔔 Day 09
+
+## Section
+
+```elixir
+red_tile_locations =
+  File.read!("#{__DIR__}/../../../inputs/2025/day09.txt")
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn row ->
+    row
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> List.to_tuple()
+  end)
+```
+
+## Part 1
+
+```elixir
+defmodule Helper do
+  def get_pairs_with_sizes(list) do
+    get_pairs_with_sizes(list, [])
+  end
+
+  defp get_pairs_with_sizes([_head], result), do: Enum.concat(result)
+  defp get_pairs_with_sizes([{hx, hy} = head | tail], result) do
+    new_results = Enum.map(tail, fn {ex, ey} = e ->
+      rectangle_size = (abs(hx - ex) + 1) * (abs(hy - ey) + 1)
+      {head, e, rectangle_size}
+    end)
+    get_pairs_with_sizes(tail, [new_results | result])
+  end
+end
+```
+
+```elixir
+Helper.get_pairs_with_sizes(red_tile_locations)
+|> Enum.max_by(&elem(&1, 2))
+|> elem(2)
+```
+
+## Part 2
+
+```elixir
+{vertical_ranges, horizontal_ranges} =
+  red_tile_locations
+  |> Enum.chunk_every(2, 1, :discard)
+  |> Enum.reduce({[], []}, fn [{fx, fy}, {sx, sy}], {vertical_ranges, horizontal_ranges} ->
+    if fx == sx do
+      nv_range = {fx, min(fy, sy)..max(fy, sy)}
+      {[nv_range | vertical_ranges], horizontal_ranges}
+    else
+      nh_range = {min(fx, sx)..max(fx, sx), fy}
+      {vertical_ranges, [nh_range | horizontal_ranges]}
+    end
+  end)
+
+Helper.get_pairs_with_sizes(red_tile_locations)
+|> Enum.sort_by(&elem(&1, 2), :desc)
+|> Enum.find(fn {{fx, fy}, {sx, sy}, _size} ->
+  max_x = max(fx, sx)
+  min_x = min(fx, sx)
+  max_y = max(fy, sy)
+  min_y = min(fy, sy)
+  iy_range = (min_y+1)..(max_y-1)
+  ix_range = (min_x+1)..(max_x-1)
+
+  # Check for gaps in top edge
+  any_vertical_overlap =
+    vertical_ranges
+    |> Enum.any?(fn {x, y_range} ->
+      x > min_x && x < max_x && !Range.disjoint?(y_range, iy_range)
+    end)
+
+  any_horizontal_overlap =
+    horizontal_ranges
+    |> Enum.any?(fn {x_range, y} ->
+      y > min_y && y < max_y && !Range.disjoint?(x_range, ix_range)
+    end)
+
+  !any_vertical_overlap && !any_horizontal_overlap
+end)
+|> elem(2)
+```
